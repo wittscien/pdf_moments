@@ -1,0 +1,15 @@
+.DS_Store
+__pycache__
+*.egg-info/
+*.pdf
+*.h5
+data/
+aux/
+cnlogs/
+anlogs/
+LittleQCD/
+test/
+software/
+run_test/
+confs.txt
+WFlow_tests_Ani/
