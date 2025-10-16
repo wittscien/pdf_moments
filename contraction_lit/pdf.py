@@ -19,7 +19,8 @@ import tqdm
 
 
 #%%
-# 2025.09.09: Cross check gf.
+# 2025.10.15: Cross check fermion gf without bc.
+# 2025.09.09: Cross check gauge gf without bc.
 
 
 
@@ -89,7 +90,6 @@ if __name__ == "__main__":
     # U = U.apply_boundary_condition_periodic_quark()
 
     chi = cr.Fermion(geometry)
-    chi.point_source([0, 0, 0, 0, 0, 0])
     chi.field = read_spinor_Ani("../WFlow_tests_Ani/spinor_in_8c16.dat")
 
     gflow = GFlow(U, chi, {"dt": 0.125, "niter": 4})
@@ -97,9 +97,9 @@ if __name__ == "__main__":
     for i in range(1, len(gflow.U_list)):
         U_Ani_flowed = cr.Gauge(geometry)
         U_Ani_flowed.field = read_gauge_Ani("../WFlow_tests_Ani/gauge_out_8c16_epsilon0.125000_n_steps%d.dat" % i)
-        ut.check("Gauge flowed n = %d:" % i, gflow.U_list[i].field[3,0,3,2,0,1,0].real, U_Ani_flowed.field[3,0,3,2,0,1,0].real)
+        print("Gauge flowed n = %d:" % i, np.allclose(gflow.U_list[i].field, U_Ani_flowed.field))
         if i == 2:
             xi_Ani_flowed = cr.Fermion(geometry)
             xi_Ani_flowed.field = read_spinor_Ani("../WFlow_tests_Ani/spinor_out_8c16_epsilon0.125000_n_steps%d.dat" % i)
-            ut.check("Spinor flowed n = %d:" % i, gflow.chi_list[i].field[3,0,3,2,0,1].real, xi_Ani_flowed.field[3,0,3,2,0,1].real)
+            print("Spinor flowed n = %d:" % i, np.allclose(gflow.chi_list[i].field, xi_Ani_flowed.field))
 
