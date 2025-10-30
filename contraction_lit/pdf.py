@@ -19,6 +19,7 @@ import tqdm
 
 
 #%%
+# 2025.10.30: Cross check fermion adj gf without bc.
 # 2025.10.15: Cross check fermion gf without bc.
 # 2025.09.09: Cross check gauge gf without bc.
 
@@ -92,14 +93,20 @@ if __name__ == "__main__":
     chi = cr.Fermion(geometry)
     chi.field = read_spinor_Ani("../WFlow_tests_Ani/spinor_in_8c16.dat")
 
-    gflow = GFlow(U, chi, {"dt": 0.125, "niter": 4})
-    U_flowed, xi_flowed = gflow.forward()
+    gflow = GFlow(U, chi, {"dt": 0.125, "niter": 2})
+    gflow.forward()
+    gflow.adjoint(chi)
+
     for i in range(1, len(gflow.U_list)):
         U_Ani_flowed = cr.Gauge(geometry)
         U_Ani_flowed.field = read_gauge_Ani("../WFlow_tests_Ani/gauge_out_8c16_epsilon0.125000_n_steps%d.dat" % i)
         print("Gauge flowed n = %d:" % i, np.allclose(gflow.U_list[i].field, U_Ani_flowed.field))
         if i == 2:
-            xi_Ani_flowed = cr.Fermion(geometry)
-            xi_Ani_flowed.field = read_spinor_Ani("../WFlow_tests_Ani/spinor_out_8c16_epsilon0.125000_n_steps%d.dat" % i)
-            print("Spinor flowed n = %d:" % i, np.allclose(gflow.chi_list[i].field, xi_Ani_flowed.field))
+            chi_Ani_flowed = cr.Fermion(geometry)
+            chi_Ani_flowed.field = read_spinor_Ani("../WFlow_tests_Ani/spinor_out_8c16_epsilon0.125000_n_steps%d.dat" % i)
+            print("Spinor forward flowed n = %d:" % i, np.allclose(gflow.chi_list[i].field, chi_Ani_flowed.field))
 
+            xi_Ani_adj_flowed = cr.Fermion(geometry)
+            xi_Ani_adj_flowed.field = read_spinor_Ani("../WFlow_tests_Ani/spinor_out_Adj_8c16_epsilon0.125000_n_steps%d.dat" % i)
+            print("Spinor adjoint flowed n = %d:" % i, np.allclose(gflow.xi_list[i].field, xi_Ani_adj_flowed.field))
+    
