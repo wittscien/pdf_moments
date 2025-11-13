@@ -83,6 +83,7 @@ if __name__ == "__main__":
 
     # Setup
     # Path("../data/beta_%.2f_L%dx%d/data/%d"%(beta, X, T, args.confnum)).mkdir(parents=True, exist_ok=True)
+    Path("../data/test/").mkdir(parents=True, exist_ok=True)
 
     U = cr.Gauge(geometry)
     U.field = read_gauge_Ani("../WFlow_tests_Ani/gauge_in_8c16.dat")
@@ -110,3 +111,9 @@ if __name__ == "__main__":
             xi_Ani_adj_flowed.field = read_spinor_Ani("../WFlow_tests_Ani/spinor_out_Adj_8c16_epsilon0.125000_n_steps%d.dat" % i)
             print("Spinor adjoint flowed n = %d:" % i, np.allclose(gflow.xi_list[i].field, xi_Ani_adj_flowed.field))
     
+    # Save the fields
+    U.save('../data/test/gauge')
+    chi.save('../data/test/spinor')
+    gflow.U_list[2].save('../data/test/gauge_flowed_2')
+    gflow.chi_list[2].save('../data/test/spinor_fwd_flowed_2')
+    gflow.xi_list[2].save('../data/test/spinor_adj_flowed_2')
