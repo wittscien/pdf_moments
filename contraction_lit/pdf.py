@@ -114,7 +114,7 @@ if __name__ == "__main__":
             chi = cr.Fermion(geometry)
             chi.field = read_spinor_Ani("../WFlow_tests_Ani/spinor_in_8c16.dat")
         
-            gflow = GFlow(U, chi, {"dt": 0.125, "niter": 2})
+            gflow = GFlow(U_with_phase, chi, {"dt": 0.125, "niter": 2})
             gflow.forward()
             gflow.adjoint(chi)
         
@@ -211,7 +211,7 @@ if __name__ == "__main__":
         mu_num2st = {0: ['t', '-t'], 1: ['x', '-x'], 2: ['y', '-y'], 3: ['z', '-z']}
         gflow_niter = 1
         gflow_dt = 0.125
-        N_der = 5
+        N_der = 3
         corr_3pt_pdf_pion = []
         for d in range(N_der + 1):
             # Ngf x (mu x mu ...) x (d x d x ...) * tsep x tins
@@ -237,7 +237,7 @@ if __name__ == "__main__":
 
         # For flowed gauge
         gflow_params = {"dt": gflow_dt, "niter": gflow_niter}
-        gflow = GFlow(U, cr.Fermion(geometry), gflow_params)
+        gflow = GFlow(U_with_phase, cr.Fermion(geometry), gflow_params)
         gflow.forward()
         for it in tqdm.tqdm(range(gflow_niter + 1), desc = "Flow"):
             gflow_params = {"dt": gflow_dt, "niter": it}
@@ -287,5 +287,5 @@ if __name__ == "__main__":
                                 corr_3pt_pdf_pion_space = contract_pdf_term(Seq_fs, Su_fs, U_f, mu1, mu_list, fb_list)
                                 for tins in range(tsep + 1):
                                     corr_3pt_pdf_pion[d][(it, mu1) + mu_list + fb_list + (tsep, tins)] = xp.sum(corr_3pt_pdf_pion_space[tins])
-        for d in range(3, N_der + 1):
+        for d in range(N_der + 1):
             xp.save("../data/test/corr_3pt_pion_conf_%d_Nder_%d.npy" % (conf, d), corr_3pt_pdf_pion[d])
