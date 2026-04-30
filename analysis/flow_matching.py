@@ -10,15 +10,9 @@ mp.mp.dps = 50
 def harmonic_number(n):
     return mp.nsum(lambda k: 1/mp.mpf(k), [1, n])
 
-
-def gamma_n(n, CF=4/3):
-    """
-    One-loop anomalous dimension for non-singlet twist-2 operator.
-    γ_n = 8 C_F [ H_n - 1/(2n(n+1)) - 3/4 ]
-    """
+def gamma_n(n):
     Hn = harmonic_number(n)
-    return 8 * CF * (Hn - 1/(2*n*(n+1)) - mp.mpf(3)/4)
-
+    return 1 + 4*(Hn - 1) - 2/(n*(n+1))
 
 def B_n(n):
     """
@@ -38,10 +32,10 @@ def B_n(n):
 
     # hypergeometric sum
     def summand(j):
-        return (1/(j*(j-1)*2**j)) * mp.hyper([1/2, 1], [j], 1)
+        return (1/(j*(j-1)*2**j)) * mp.lerchphi(1/2, 1, j)
 
     sum_term = mp.nsum(summand, [2, n])
-    term5 = -4/n * sum_term
+    term5 = -4 * sum_term
 
     return term1 + term2 + term3 + term4 + term5
 
@@ -52,27 +46,34 @@ def c_n_1loop(n, t, mu, Nc=3):
     """
     CF = (Nc**2 - 1) / (2*Nc)
 
-    gamma = gamma_n(n, CF)
+    gamma = gamma_n(n)
     B = B_n(n)
 
     return CF * (gamma * mp.log(8*mp.pi*mu**2*t) + B)
 
+
+def c_n(n, t, mu):
+    alpha_s = 0.3069
+    c1 = c_n_1loop(n, t, mu)
+    return 1 + alpha_s/(4*mp.pi) * c1
+
+
 def c_numeric(n, t, mu):
-    return float(c_n_1loop(n, t, mu))
+    return float(c_n(n, t, mu))
 
-# parameters
-n = 4
-mu = 2.0
 
-# flow time range (log scale is important!)
-x_values = np.logspace(-4, 0, 200)
-t_values = x_values / mu**2
+if __name__ == '__main__':
+    # parameters
+    n = 2
+    mu = 2.0
 
-c_values = [c_numeric(n, t, mu) for t in t_values]
+    # flow time range (log scale is important!)
+    x_values = np.linspace(0.1, 0.6) # sqrt(8t) in fm
+    t_values = x_values ** 2 / 8 / 0.197 ** 2 # GeV-2
+    c_values = [c_numeric(n, t, mu) for t in t_values]
 
-plt.figure()
-plt.plot(x_values, c_values)
-plt.xscale("log")
-plt.xlabel("μ² t")
-plt.ylabel("c_n^{(1)}")
-plt.show()
+    plt.figure()
+    plt.plot(x_values, c_values)
+    plt.xlabel("sqrt 8t / fm")
+    plt.ylabel("c2")
+    plt.show()
