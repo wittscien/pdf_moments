@@ -208,15 +208,30 @@ if __name__ == "__main__":
         #%%
         # 3pt with non-local insertions
         mu_num2st = {0: ['t', '-t'], 1: ['x', '-x'], 2: ['y', '-y'], 3: ['z', '-z']}
-        gflow_niter = 10
+        gflow_niter = 1
         gflow_dt = 0.125
-        N_der = 2
+        N_der = 5
         corr_3pt_pdf_pion = []
         for d in range(N_der + 1):
             # Ngf x (mu x mu ...) x (d x d x ...) * tsep x tins
             # d = 0 means fwd (+1), d = 1 means bwd (-1)
             shape = (gflow_niter + 1,) + (4,) * (d + 1) + (2,) * d + (T, T)
             corr_3pt_pdf_pion.append(xp.zeros(shape, dtype = complex))
+        color_idx = "bcdefg"
+        def contract_pdf_term(Seq_fs, Su_fs, U_f, mu1, mu_list, fb_list):
+            link_fields = []
+            Su_shifted = Su_fs
+            for mu, fb in zip(mu_list, fb_list):
+                direction = mu_num2st[mu][fb]
+                link_fields.append(U_f.mu(direction).field)
+                Su_shifted = Su_shifted.shift(direction)
+            n_links = len(link_fields)
+            color_chain = color_idx[:n_links + 1]
+            link_subscripts = ["txyz%s%s" % (color_chain[i], color_chain[i + 1]) for i in range(n_links)]
+            Su_subscript = "txyzDA%sa" % color_chain[n_links]
+            subscript = ", ".join(["txyzBAba", "BC", "CD"] + link_subscripts + [Su_subscript]) + " -> txyz"
+            sign = (-1) ** sum(fb_list)
+            return sign * contract(subscript, xp.conjugate(Seq_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, *link_fields, Su_shifted.field)
         # For flowed gauge
         gflow_params = {"dt": gflow_dt, "niter": gflow_niter}
         gflow = GFlow(U, cr.Fermion(geometry), gflow_params)
@@ -229,6 +244,7 @@ if __name__ == "__main__":
             Phi = cr.Propagator(geometry)
             Phi.field = contract("CB, txyzBAba -> txyzCAba", cr.Gamma(5).mat, Su_ps.field)
             for tsep in range(T):
+                print(tsep)
                 Phi_t = Phi.keep_one_time_slice(tsep)
                 Seq_ps = ut.propagator_parallelized(Q, inv_params, Phi_t, 'd')
                 Seq_fs = ut.prop_fwd_flow(U_with_phase, gflow_params, Seq_ps)
@@ -258,5 +274,13 @@ if __name__ == "__main__":
                             for tins in range(tsep + 1): corr_3pt_pdf_pion[2][it, mu1, mu2, mu3, 1, 0, tsep, tins] = xp.sum(corr_3pt_pdf_pion_space[tins])
                             corr_3pt_pdf_pion_space = contract('txyzBAba, BC, CD, txyzbc, txyzcd, txyzDAda -> txyz', xp.conjugate(Seq_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(bwdmu2).field, U_f.mu(bwdmu3).field, Su_fs.shift(bwdmu2).shift(bwdmu3).field)
                             for tins in range(tsep + 1): corr_3pt_pdf_pion[2][it, mu1, mu2, mu3, 1, 1, tsep, tins] = xp.sum(corr_3pt_pdf_pion_space[tins])
+                # m = 3, 4, 5
+                for d in range(3, N_der + 1):
+                    for mu1 in range(4):
+                        for mu_list in np.ndindex(*(4,) * d):
+                            for fb_list in np.ndindex(*(2,) * d):
+                                corr_3pt_pdf_pion_space = contract_pdf_term(Seq_fs, Su_fs, U_f, mu1, mu_list, fb_list)
+                                for tins in range(tsep + 1):
+                                    corr_3pt_pdf_pion[d][(it, mu1) + mu_list + fb_list + (tsep, tins)] = xp.sum(corr_3pt_pdf_pion_space[tins])
         for d in range(N_der + 1):
             xp.save("../data/test/corr_3pt_pion_conf_%d_Nder_%d.npy" % (conf, d), corr_3pt_pdf_pion[d])
