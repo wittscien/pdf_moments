@@ -99,10 +99,10 @@ def reading_3_parallel(read3,conf,datadir,params):
             data3_par['pion-cov-nder_2'] /= 2 ** (3 - 1)
 
             # Combine into operators relevant to PDFs
-            data3_par['pion-PDF-n_2'] = data3_par['pion-cov-nder_1'][:,0,0,:,:]
+            data3_par['pion-PDF-n_2'] = data3_par['pion-cov-nder_1'][:,0,0,:,:].copy()
             for mu in [1,2,3]:
                 data3_par['pion-PDF-n_2'] -= data3_par['pion-cov-nder_1'][:,mu,mu,:,:] / 3
-            data3_par['pion-PDF-n_3'] = data3_par['pion-cov-nder_2'][:,0,0,0,:,:]
+            data3_par['pion-PDF-n_3'] = data3_par['pion-cov-nder_2'][:,0,0,0,:,:].copy()
             for mu in [1,2,3]:
                 data3_par['pion-PDF-n_3'] -= (data3_par['pion-cov-nder_2'][:,mu,mu,0,:,:] + data3_par['pion-cov-nder_2'][:,mu,0,mu,:,:] + data3_par['pion-cov-nder_2'][:,0,mu,mu,:,:]) / 3
 
