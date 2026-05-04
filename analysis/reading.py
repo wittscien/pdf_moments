@@ -8,6 +8,7 @@ import tqdm
 import funcs as tp
 import inputs
 import math
+import itertools
 
 
 def combine_covariant_derivative(data, der):
@@ -41,6 +42,22 @@ def combine_covariant_derivative(data, der):
     # der = n - 1, so this is the overall 1 / 2^(n-1) factor.
     cov_data /= 2 ** der
     return cov_data
+
+
+def symmetrized_operator(data, indices):
+    # Braces in the table mean normalized symmetrization over unique permutations.
+    perms = set(itertools.permutations(indices))
+    result = None
+    for perm in perms:
+        # Build data[:, perm[0], perm[1], ..., perm[-1], :, :].
+        # The first ':' is flow time; the final two ':' axes are tsep and tins.
+        term = data[(slice(None),) + tuple(perm) + (slice(None), slice(None))]
+        if result is None:
+            result = term.copy()
+        else:
+            result += term
+    result /= len(perms)
+    return result
 
 
 
@@ -135,12 +152,59 @@ def reading_3_parallel(read3,conf,datadir,params):
                 data3_par['pion-cov-nder_%d' % d] = combine_covariant_derivative(data3_par['pion-nder_%d_diag_0' % d], d)
 
             # Combine into operators relevant to PDFs
-            data3_par['pion-PDF-n_2'] = data3_par['pion-cov-nder_1'][:,0,0,:,:].copy()
-            for mu in [1,2,3]:
-                data3_par['pion-PDF-n_2'] -= data3_par['pion-cov-nder_1'][:,mu,mu,:,:] / 3
-            data3_par['pion-PDF-n_3'] = data3_par['pion-cov-nder_2'][:,0,0,0,:,:].copy()
-            for mu in [1,2,3]:
-                data3_par['pion-PDF-n_3'] -= (data3_par['pion-cov-nder_2'][:,mu,mu,0,:,:] + data3_par['pion-cov-nder_2'][:,mu,0,mu,:,:] + data3_par['pion-cov-nder_2'][:,0,mu,mu,:,:]) / 3
+            # Need pion-cov-nder_1 to construct n = 2.
+            if nder >= 1:
+                # n = 2: O44 - 1/3 sum_i Oii.
+                data3_par['pion-PDF-n_2'] = data3_par['pion-cov-nder_1'][:,0,0,:,:].copy()
+                for mu in [1,2,3]:
+                    data3_par['pion-PDF-n_2'] -= data3_par['pion-cov-nder_1'][:,mu,mu,:,:] / 3
+            # Need pion-cov-nder_2 to construct n = 3.
+            if nder >= 2:
+                # n = 3: O444 - sum_i O_{ii4}.
+                data3_par['pion-PDF-n_3'] = data3_par['pion-cov-nder_2'][:,0,0,0,:,:].copy()
+                for mu in [1,2,3]:
+                    data3_par['pion-PDF-n_3'] -= (data3_par['pion-cov-nder_2'][:,mu,mu,0,:,:] + data3_par['pion-cov-nder_2'][:,mu,0,mu,:,:] + data3_par['pion-cov-nder_2'][:,0,mu,mu,:,:]) / 3
+            # Need pion-cov-nder_3 to construct n = 4.
+            if nder >= 3:
+                # n = 4: O4444 - 2 sum_i O_{ii44} + 1/5 sum_i Oiiii
+                #        + 2/5 sum_{i<j} O_{iijj}.
+                cov = data3_par['pion-cov-nder_3']
+                data3_par['pion-PDF-n_4'] = cov[:,0,0,0,0,:,:].copy()
+                for mu in [1,2,3]:
+                    data3_par['pion-PDF-n_4'] += cov[:,mu,mu,mu,mu,:,:] / 5
+                    data3_par['pion-PDF-n_4'] -= 2 * symmetrized_operator(cov, (mu, mu, 0, 0))
+                for mu1 in [1,2,3]:
+                    for mu2 in range(mu1 + 1, 4):
+                        data3_par['pion-PDF-n_4'] += 2 * symmetrized_operator(cov, (mu1, mu1, mu2, mu2)) / 5
+            # Need pion-cov-nder_4 to construct n = 5.
+            if nder >= 4:
+                # n = 5: O44444 - 10/3 sum_i O_{ii444}
+                #        + sum_i O_{iiii4} + 2 sum_{i<j} O_{iijj4}.
+                cov = data3_par['pion-cov-nder_4']
+                data3_par['pion-PDF-n_5'] = cov[:,0,0,0,0,0,:,:].copy()
+                for mu in [1,2,3]:
+                    data3_par['pion-PDF-n_5'] += symmetrized_operator(cov, (mu, mu, mu, mu, 0))
+                    data3_par['pion-PDF-n_5'] -= 10 * symmetrized_operator(cov, (mu, mu, 0, 0, 0)) / 3
+                for mu1 in [1,2,3]:
+                    for mu2 in range(mu1 + 1, 4):
+                        data3_par['pion-PDF-n_5'] += 2 * symmetrized_operator(cov, (mu1, mu1, mu2, mu2, 0))
+            # Need pion-cov-nder_5 to construct n = 6.
+            if nder >= 5:
+                # n = 6: O444444 - 5 sum_i O_{ii4444}
+                #        + 3 sum_i O_{iiii44} + 6 sum_{i<j} O_{iijj44}
+                #        - 1/7 sum_i Oiiiiii - 3/7 sum_{i<j} O_{iiiijj}
+                #        - 6/7 O_{112233}.
+                cov = data3_par['pion-cov-nder_5']
+                data3_par['pion-PDF-n_6'] = cov[:,0,0,0,0,0,0,:,:].copy()
+                data3_par['pion-PDF-n_6'] -= 6 * symmetrized_operator(cov, (1,1,2,2,3,3)) / 7
+                for mu in [1,2,3]:
+                    data3_par['pion-PDF-n_6'] -= cov[:,mu,mu,mu,mu,mu,mu,:,:] / 7
+                    data3_par['pion-PDF-n_6'] += 3 * symmetrized_operator(cov, (mu, mu, mu, mu, 0, 0))
+                    data3_par['pion-PDF-n_6'] -= 5 * symmetrized_operator(cov, (mu, mu, 0, 0, 0, 0))
+                for mu1 in [1,2,3]:
+                    for mu2 in range(mu1 + 1, 4):
+                        data3_par['pion-PDF-n_6'] -= 3 * symmetrized_operator(cov, (mu1, mu1, mu1, mu1, mu2, mu2)) / 7
+                        data3_par['pion-PDF-n_6'] += 6 * symmetrized_operator(cov, (mu1, mu1, mu2, mu2, 0, 0))
 
             tp.write_data(file_conf, data3_par)
         data3.update(data3_par)
