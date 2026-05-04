@@ -72,9 +72,11 @@ if __name__ == '__main__':
     [data2, data3] = reading.reading(params, args.read2, args.read3)
     # For cross check
     if args.read3 != 'no':
+        pdf_dir = '../%s/PDF' % datadir['mydata']
+        os.makedirs(pdf_dir, exist_ok=True)
         for key in sorted(data3.keys()):
-            if key.startswith(('pion-cov-nder_', 'pion-PDF-n_')):
-                np.save(key, data3[key])
+            if key.startswith(('pion-cov-nder_', 'pion-PDF-n_', 'kaon-cov-nder_', 'kaon-PDF-n_')):
+                np.save('%s/%s.npy' % (pdf_dir, key), data3[key])
 
     #%%
     # Conf test

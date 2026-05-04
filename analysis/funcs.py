@@ -15,6 +15,13 @@ import inputs
 import tqdm
 
 
+def show_in_spyder():
+    # Spyder sets this environment variable. In VS Code or terminal runs, save
+    # the figure but do not pop up a window.
+    if 'SPYDER_KERNEL_ID' in os.environ:
+        plt.show()
+
+
 
 def gen_dist_list(L):
     dist_list = np.zeros((L // 2) ** 2 * 3 + 1)
@@ -278,7 +285,7 @@ def plot_meff(data,params_test,tau=1,mtype='exp',mylim='no',sv='',tit='',figdir=
     ax.legend()
     Path('../%s/%s/'%(params['figures'],figdir)).mkdir(parents=True, exist_ok=True)
     plt.savefig('../%s/%s/meff_%s.pdf'%(params['figures'],figdir,sv),transparent=True)
-    plt.show()
+    show_in_spyder()
 
 
 def cal_Z(params2,mtype,t0,Gresult,corrmat_mean,v_ti,nstates):

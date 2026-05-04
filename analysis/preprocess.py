@@ -42,7 +42,7 @@ def preprocess(args, datadir, params, relist, data2, data3):
                 redata2[k] = tp.resample(bindata2[k], params['tech'], relist)
             if fold:
                 for k in redata2.keys():
-                    if k.startswith('pion'):
+                    if k.startswith(('pion', 'kaon')):
                         redata2[k] = (np.roll(redata2[k][:,::-1],1,axis=1)+redata2[k])/2
             tp.write_data(refile, redata2)
         else:
