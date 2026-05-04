@@ -32,12 +32,13 @@ def cal_params(args):
         params['T'] = 8
         params['spacing'] = 0.2
         params['nsrc'] = 1
-        params['nder'] = 2
-        params['nflow'] = 10
+        params['nder'] = 5
+        params['nflow'] = 1
         params['tsnk_max_3pt'] = {'pion': 8}
         params['Z_V^l'] = 6
         params['confs'] = np.arange(1000,2020,20)
         params['confs'] = np.arange(1000,1080,20)
+        params['confs'] = [0]
 
     elif params['ensemble'] == "C24P29":
         params['L'] = 24

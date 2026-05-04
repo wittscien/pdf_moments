@@ -24,6 +24,7 @@ import fit_two
 import quantities
 
 # In[]
+# 2026.05.03: Fix bugs from copy and cross check.
 # 2026.03.02: Start the PDF project. Copy from the Sigmac project.
 # 2025.06.03: Start the Sigmac project. Copy from the Tcc project.
 
