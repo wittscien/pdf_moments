@@ -10,6 +10,39 @@ import inputs
 import math
 
 
+def combine_covariant_derivative(data, der):
+    # data has shape:
+    # [flow, mu1, ..., mu_{der+1}, d2, ..., d_{der+1}, tsep, tins].
+    # The direction index convention is 0 -> d = +1 and 1 -> d = -1.
+    if der == 0:
+        return data.copy()
+
+    # The covariant-derivative result keeps the flow, Lorentz, tsep, and tins axes,
+    # but sums over all derivative direction axes.
+    cov_shape = data.shape[:der + 2] + data.shape[-2:]
+    cov_data = np.zeros(cov_shape, dtype=data.dtype)
+    directions = tuple(np.ndindex(*(2,) * der))
+
+    for mu_indices in np.ndindex(*(4,) * (der + 1)):
+        derivative_mus = mu_indices[1:]
+        wt = derivative_mus.count(0)
+        cov_index = (slice(None),) + mu_indices + (slice(None), slice(None))
+
+        for direction_indices in directions:
+            # w_plus counts time derivatives whose direction is +1.
+            wp = sum((mu == 0) and (direction_index == 0)
+                     for mu, direction_index in zip(derivative_mus, direction_indices))
+            data_index = (slice(None),) + mu_indices + direction_indices + (slice(None), slice(None))
+            for k in range(wt + 1):
+                # np.roll(a, wp-k)[tau] gives a[tau - wp + k], matching
+                # t_y - w_plus + k in the formula.
+                cov_data[cov_index] += math.comb(wt, k) * np.roll(data[data_index], wp - k, axis=-1) / 2 ** wt
+
+    # der = n - 1, so this is the overall 1 / 2^(n-1) factor.
+    cov_data /= 2 ** der
+    return cov_data
+
+
 
 def reading_2_parallel(read2,conf,datadir,params):
     atime = time.time()
@@ -67,36 +100,39 @@ def reading_3_parallel(read3,conf,datadir,params):
                     file = "../%s/%s/corr_3pt_pion_conf_%d_Nder_%d.npy" % (datadir['3pt'], params['ensemble'], conf, d)
                     direct = np.load(file)
                     for i in range(1):
-                        data3_par['pion-nder_%d_diag_%d' % (d, i)] += direct * V / nsrc
+                        data3_par['pion-nder_%d_diag_%d' % (d, i)] += direct #* V / nsrc
 
             # Combine into operators with proper covariant derivatives, I call them cov
-            # m = 0
-            data3_par['pion-cov-nder_0'] = data3_par['pion-nder_0_diag_0']
-            # m = 1
-            data3_par['pion-cov-nder_1'] = np.zeros((nflow + 1, 4, 4, tsnk_max_3pt, tsnk_max_3pt), dtype = complex)
-            for mu1 in range(4):
-                for mu2 in range(4):
-                    wt = [mu2].count(0)
-                    for d2 in [-1, 1]:
-                        d2ind = 0 if d2 == 1 else 1
-                        wp = (mu2 == 0) * (d2 == 1)
-                        for k in range(wt + 1):
-                            data3_par['pion-cov-nder_1'][:,mu1,mu2,:,:] += math.comb(wt, k) * np.roll(data3_par['pion-nder_1_diag_0'][:,mu1,mu2,d2ind,:,:], wp - k, axis = -1) / 2 ** wt
-            data3_par['pion-cov-nder_1'] /= 2 ** (2 - 1)
-            # m = 2
-            data3_par['pion-cov-nder_2'] = np.zeros((nflow + 1, 4, 4, 4, tsnk_max_3pt, tsnk_max_3pt), dtype = complex)
-            for mu1 in range(4):
-                for mu2 in range(4):
-                    for mu3 in range(4):
-                        wt = [mu2, mu3].count(0)
-                        for d2 in [-1, 1]:
-                            for d3 in [-1, 1]:
-                                d2ind = 0 if d2 == 1 else 1
-                                d3ind = 0 if d3 == 1 else 1
-                                wp = (mu2 == 0) * (d2 == 1) + (mu3 == 0) * (d3 == 1)
-                                for k in range(wt + 1):
-                                    data3_par['pion-cov-nder_2'][:,mu1,mu2,mu3,:,:] += math.comb(wt, k) * np.roll(data3_par['pion-nder_2_diag_0'][:,mu1,mu2,mu3,d2ind,d3ind,:,:], wp - k, axis = -1) / 2 ** wt
-            data3_par['pion-cov-nder_2'] /= 2 ** (3 - 1)
+            # Old explicit implementation for m = 0, 1, 2:
+            # # m = 0
+            # data3_par['pion-cov-nder_0'] = data3_par['pion-nder_0_diag_0']
+            # # m = 1
+            # data3_par['pion-cov-nder_1'] = np.zeros((nflow + 1, 4, 4, tsnk_max_3pt, tsnk_max_3pt), dtype = complex)
+            # for mu1 in range(4):
+            #     for mu2 in range(4):
+            #         wt = [mu2].count(0)
+            #         for d2 in [-1, 1]:
+            #             d2ind = 0 if d2 == 1 else 1
+            #             wp = (mu2 == 0) * (d2 == 1)
+            #             for k in range(wt + 1):
+            #                 data3_par['pion-cov-nder_1'][:,mu1,mu2,:,:] += math.comb(wt, k) * np.roll(data3_par['pion-nder_1_diag_0'][:,mu1,mu2,d2ind,:,:], wp - k, axis = -1) / 2 ** wt
+            # data3_par['pion-cov-nder_1'] /= 2 ** (2 - 1)
+            # # m = 2
+            # data3_par['pion-cov-nder_2'] = np.zeros((nflow + 1, 4, 4, 4, tsnk_max_3pt, tsnk_max_3pt), dtype = complex)
+            # for mu1 in range(4):
+            #     for mu2 in range(4):
+            #         for mu3 in range(4):
+            #             wt = [mu2, mu3].count(0)
+            #             for d2 in [-1, 1]:
+            #                 for d3 in [-1, 1]:
+            #                     d2ind = 0 if d2 == 1 else 1
+            #                     d3ind = 0 if d3 == 1 else 1
+            #                     wp = (mu2 == 0) * (d2 == 1) + (mu3 == 0) * (d3 == 1)
+            #                     for k in range(wt + 1):
+            #                         data3_par['pion-cov-nder_2'][:,mu1,mu2,mu3,:,:] += math.comb(wt, k) * np.roll(data3_par['pion-nder_2_diag_0'][:,mu1,mu2,mu3,d2ind,d3ind,:,:], wp - k, axis = -1) / 2 ** wt
+            # data3_par['pion-cov-nder_2'] /= 2 ** (3 - 1)
+            for d in range(nder + 1):
+                data3_par['pion-cov-nder_%d' % d] = combine_covariant_derivative(data3_par['pion-nder_%d_diag_0' % d], d)
 
             # Combine into operators relevant to PDFs
             data3_par['pion-PDF-n_2'] = data3_par['pion-cov-nder_1'][:,0,0,:,:].copy()
