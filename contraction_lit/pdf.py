@@ -169,17 +169,17 @@ if __name__ == "__main__":
         # Propagator
         Su_ps = ut.propagator_parallelized(Q, inv_params, srcfull, 'u')
         Sd_ps = ut.propagator_parallelized(Q, inv_params, srcfull, 'd')
-        Ssup_ps = ut.propagator_parallelized(Qs, inv_params, srcfull, 'c')
+        Ssp_ps = ut.propagator_parallelized(Qs, inv_params, srcfull, 'c') # s with plus mu
         # Ss_ps = ut.propagator_parallelized(Qs, inv_params, srcfull, 's')
     
         # Sink smearing
         # Su_ss = ut.prop_smear(Smr, Su_ps)
         # Sd_ss = ut.prop_smear(Smr, Sd_ps)
-        # Ssup_ss = ut.prop_smear(Smr, Ssup_ps)
+        # Ssp_ss = ut.prop_smear(Smr, Ssp_ps)
         # Ss_ss = ut.prop_smear(Smr, Ss_ps)
         Su_ss = Su_ps
         Sd_ss = Sd_ps
-        Ssup_ss = Ssup_ps
+        Ssp_ss = Ssp_ps
         # Ss_ss = Ss_ps
     
         #%%
@@ -191,7 +191,7 @@ if __name__ == "__main__":
         xp.save("../data/test/corr_2pt_pion_conf_%d.npy" % (conf), corr_2pt_pion)
 
         corr_2pt_kaon = xp.zeros((T), dtype = complex)
-        corr_2pt_kaon_space = cf.meson(Ssup_ps, Su_ps, 5, 5) # Two minus signs: dagger sign and trace sign
+        corr_2pt_kaon_space = cf.meson(Ssp_ps, Su_ps, 5, 5) # Two minus signs: dagger sign and trace sign
         for t in range(T):
             corr_2pt_kaon[t] = xp.sum(corr_2pt_kaon_space[t])
         xp.save("../data/test/corr_2pt_kaon_conf_%d.npy" % (conf), corr_2pt_kaon)
@@ -212,24 +212,24 @@ if __name__ == "__main__":
                 Phi.field = contract("CB, txyzBAba -> txyzCAba", cr.Gamma(5).mat, Su_ps.field)
                 for tsep in range(T):
                     Phi_t = Phi.keep_one_time_slice(tsep)
-                    Seq_ps = ut.propagator_parallelized(Q, inv_params, Phi_t, 'd')
-                    Seq_fs = ut.prop_fwd_flow(U_with_phase, gflow_params, Seq_ps)
-                    # if it == 0 and tsep == 5: Seq_fs.save('Seq_it_%d_tsep%d.npy' % (it, tsep))
-                    # if it == 1 and tsep == 5: Seq_fs.save('Seq_it_%d_tsep%d.npy' % (it, tsep))
-                    corr_3pt_pion_space = contract('txyzBAba, BC, CD, txyzDAba -> txyz', xp.conjugate(Seq_fs.field), cr.Gamma(5).mat, cr.Gamma(0).mat, Su_fs.field)
+                    Seq_du_ps = ut.propagator_parallelized(Q, inv_params, Phi_t, 'd')
+                    Seq_du_fs = ut.prop_fwd_flow(U_with_phase, gflow_params, Seq_du_ps)
+                    # if it == 0 and tsep == 5: Seq_du_fs.save('Seq_it_%d_tsep%d.npy' % (it, tsep))
+                    # if it == 1 and tsep == 5: Seq_du_fs.save('Seq_it_%d_tsep%d.npy' % (it, tsep))
+                    corr_3pt_pion_space = contract('txyzBAba, BC, CD, txyzDAba -> txyz', xp.conjugate(Seq_du_fs.field), cr.Gamma(5).mat, cr.Gamma(0).mat, Su_fs.field)
                     for tins in range(tsep + 1):
                         corr_3pt_pion[it, tsep, tins] = xp.sum(corr_3pt_pion_space[tins])
 
                 # kaon
                 Phi = cr.Propagator(geometry)
-                Phi.field = contract("CB, txyzBAba -> txyzCAba", cr.Gamma(5).mat, Ssup_ps.field)
+                Phi.field = contract("CB, txyzBAba -> txyzCAba", cr.Gamma(5).mat, Ssp_ps.field)
                 for tsep in range(T):
                     Phi_t = Phi.keep_one_time_slice(tsep)
-                    Seq_ps = ut.propagator_parallelized(Q, inv_params, Phi_t, 'd')
-                    Seq_fs = ut.prop_fwd_flow(U_with_phase, gflow_params, Seq_ps)
-                    # if it == 0 and tsep == 5: Seq_fs.save('Seq_it_%d_tsep%d.npy' % (it, tsep))
-                    # if it == 1 and tsep == 5: Seq_fs.save('Seq_it_%d_tsep%d.npy' % (it, tsep))
-                    corr_3pt_kaon_space = contract('txyzBAba, BC, CD, txyzDAba -> txyz', xp.conjugate(Seq_fs.field), cr.Gamma(5).mat, cr.Gamma(0).mat, Su_fs.field)
+                    Seq_du_ps = ut.propagator_parallelized(Q, inv_params, Phi_t, 'd')
+                    Seq_du_fs = ut.prop_fwd_flow(U_with_phase, gflow_params, Seq_du_ps)
+                    # if it == 0 and tsep == 5: Seq_du_fs.save('Seq_it_%d_tsep%d.npy' % (it, tsep))
+                    # if it == 1 and tsep == 5: Seq_du_fs.save('Seq_it_%d_tsep%d.npy' % (it, tsep))
+                    corr_3pt_kaon_space = contract('txyzBAba, BC, CD, txyzDAba -> txyz', xp.conjugate(Seq_du_fs.field), cr.Gamma(5).mat, cr.Gamma(0).mat, Su_fs.field)
                     for tins in range(tsep + 1):
                         corr_3pt_kaon[it, tsep, tins] = xp.sum(corr_3pt_kaon_space[tins])
             xp.save("../data/test/corr_3pt_pion_conf_%d_g4.npy" % (conf), corr_3pt_pion)
@@ -243,30 +243,32 @@ if __name__ == "__main__":
         N_der = 3
         corr_3pt_pdf_pion = []
         corr_3pt_pdf_kaon = []
+        corr_3pt_pdf_kaon_s = []
         for d in range(N_der + 1):
             # Ngf x (mu x mu ...) x (d x d x ...) * tsep x tins
             # d = 0 means fwd (+1), d = 1 means bwd (-1)
             shape = (gflow_niter + 1,) + (4,) * (d + 1) + (2,) * d + (T, T)
             corr_3pt_pdf_pion.append(xp.zeros(shape, dtype = complex))
             corr_3pt_pdf_kaon.append(xp.zeros(shape, dtype = complex))
+            corr_3pt_pdf_kaon_s.append(xp.zeros(shape, dtype = complex))
 
         color_idx = "bcdefg"
-        def contract_pdf_term(Seq_fs, Su_fs, U_f, mu1, mu_list, fb_list):
+        def contract_pdf_term(left_fs, right_fs, U_f, mu1, mu_list, fb_list):
             link_fields = []
-            Su_shifted = Su_fs
+            right_shifted = right_fs
             U_shifted = U_f
             for mu, fb in zip(mu_list, fb_list):
                 direction = mu_num2st[mu][fb]
                 link_fields.append(U_shifted.mu(direction).field)
-                Su_shifted = Su_shifted.shift(direction)
+                right_shifted = right_shifted.shift(direction)
                 U_shifted = U_shifted.shift(direction)
             n_links = len(link_fields)
             color_chain = color_idx[:n_links + 1]
             link_subscripts = ["txyz%s%s" % (color_chain[i], color_chain[i + 1]) for i in range(n_links)]
-            Su_subscript = "txyzDA%sa" % color_chain[n_links]
-            subscript = ", ".join(["txyzBAba", "BC", "CD"] + link_subscripts + [Su_subscript]) + " -> txyz"
+            right_subscript = "txyzDA%sa" % color_chain[n_links]
+            subscript = ", ".join(["txyzBAba", "BC", "CD"] + link_subscripts + [right_subscript]) + " -> txyz"
             sign = (-1) ** sum(fb_list)
-            return sign * contract(subscript, xp.conjugate(Seq_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, *link_fields, Su_shifted.field)
+            return sign * contract(subscript, xp.conjugate(left_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, *link_fields, right_shifted.field)
 
         # For flowed gauge
         gflow_params = {"dt": gflow_dt, "niter": gflow_niter}
@@ -277,40 +279,50 @@ if __name__ == "__main__":
             gf_tau = it * gflow_dt
             U_f = gflow.U_list[it]
             Su_fs = ut.prop_fwd_flow(U_with_phase, gflow_params, Su_ps)
-            Ssup_fs = ut.prop_fwd_flow(U_with_phase, gflow_params, Ssup_ps)
-            Phi = cr.Propagator(geometry)
-            Phi_K = cr.Propagator(geometry)
-            Phi.field = contract("CB, txyzBAba -> txyzCAba", cr.Gamma(5).mat, Su_ps.field)
-            Phi_K.field = contract("CB, txyzBAba -> txyzCAba", cr.Gamma(5).mat, Ssup_ps.field)
+            Ssp_fs = ut.prop_fwd_flow(U_with_phase, gflow_params, Ssp_ps)
+            Phi_u = cr.Propagator(geometry)
+            Phi_sp = cr.Propagator(geometry)
+            Phi_u.field = contract("CB, txyzBAba -> txyzCAba", cr.Gamma(5).mat, Su_ps.field)
+            Phi_sp.field = contract("CB, txyzBAba -> txyzCAba", cr.Gamma(5).mat, Ssp_ps.field)
             for tsep in range(T):
-                Phi_t = Phi.keep_one_time_slice(tsep)
-                Seq_ps = ut.propagator_parallelized(Q, inv_params, Phi_t, 'd')
-                Seq_fs = ut.prop_fwd_flow(U_with_phase, gflow_params, Seq_ps)
-                Phi_K_t = Phi_K.keep_one_time_slice(tsep)
-                Seq_sup_ps = ut.propagator_parallelized(Q, inv_params, Phi_K_t, 'd')
-                Seq_sup_fs = ut.prop_fwd_flow(U_with_phase, gflow_params, Seq_sup_ps)
+                Phi_u_t = Phi_u.keep_one_time_slice(tsep)
+                Phi_sp_t = Phi_sp.keep_one_time_slice(tsep)
+                Seq_du_ps = ut.propagator_parallelized(Q, inv_params, Phi_u_t, 'd')
+                Seq_du_fs = ut.prop_fwd_flow(U_with_phase, gflow_params, Seq_du_ps)
+                Seq_su_ps = ut.propagator_parallelized(Qs, inv_params, Phi_u_t, 's')
+                Seq_su_fs = ut.prop_fwd_flow(U_with_phase, gflow_params, Seq_su_ps)
+                Seq_dsp_ps = ut.propagator_parallelized(Q, inv_params, Phi_sp_t, 'd')
+                Seq_dsp_fs = ut.prop_fwd_flow(U_with_phase, gflow_params, Seq_dsp_ps)
                 # m = 0
                 if N_der >= 0:
                     for mu1 in range(4):
-                        corr_3pt_pdf_pion_space = contract('txyzBAba, BC, CD, txyzDAba -> txyz', xp.conjugate(Seq_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, Su_fs.field)
+                        corr_3pt_pdf_pion_space = contract('txyzBAba, BC, CD, txyzDAba -> txyz', xp.conjugate(Seq_du_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, Su_fs.field)
                         for tins in range(T): corr_3pt_pdf_pion[0][it, mu1, tsep, tins] = xp.sum(corr_3pt_pdf_pion_space[tins])
 
-                        corr_3pt_pdf_kaon_space = contract('txyzBAba, BC, CD, txyzDAba -> txyz', xp.conjugate(Seq_sup_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, Su_fs.field)
+                        corr_3pt_pdf_kaon_space = contract('txyzBAba, BC, CD, txyzDAba -> txyz', xp.conjugate(Seq_dsp_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, Su_fs.field)
                         for tins in range(T): corr_3pt_pdf_kaon[0][it, mu1, tsep, tins] = xp.sum(corr_3pt_pdf_kaon_space[tins])
+
+                        corr_3pt_pdf_kaon_s_space = contract('txyzBAba, BC, CD, txyzDAba -> txyz', xp.conjugate(Ssp_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, Seq_su_fs.field)
+                        for tins in range(T): corr_3pt_pdf_kaon_s[0][it, mu1, tsep, tins] = xp.sum(corr_3pt_pdf_kaon_s_space[tins])
                 # m = 1
                 if N_der >= 1:
                     for mu1 in range(4):
                         for mu2 in range(4):
                             [fwdmu2, bwdmu2] = mu_num2st[mu2]
-                            corr_3pt_pdf_pion_space = contract('txyzBAba, BC, CD, txyzbc, txyzDAca -> txyz', xp.conjugate(Seq_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(fwdmu2).field, Su_fs.shift(fwdmu2).field)
+                            corr_3pt_pdf_pion_space = contract('txyzBAba, BC, CD, txyzbc, txyzDAca -> txyz', xp.conjugate(Seq_du_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(fwdmu2).field, Su_fs.shift(fwdmu2).field)
                             for tins in range(T): corr_3pt_pdf_pion[1][it, mu1, mu2, 0, tsep, tins] = xp.sum(corr_3pt_pdf_pion_space[tins])
-                            corr_3pt_pdf_pion_space = - contract('txyzBAba, BC, CD, txyzbc, txyzDAca -> txyz', xp.conjugate(Seq_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(bwdmu2).field, Su_fs.shift(bwdmu2).field)
+                            corr_3pt_pdf_pion_space = - contract('txyzBAba, BC, CD, txyzbc, txyzDAca -> txyz', xp.conjugate(Seq_du_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(bwdmu2).field, Su_fs.shift(bwdmu2).field)
                             for tins in range(T): corr_3pt_pdf_pion[1][it, mu1, mu2, 1, tsep, tins] = xp.sum(corr_3pt_pdf_pion_space[tins])
 
-                            corr_3pt_pdf_kaon_space = contract('txyzBAba, BC, CD, txyzbc, txyzDAca -> txyz', xp.conjugate(Seq_sup_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(fwdmu2).field, Su_fs.shift(fwdmu2).field)
+                            corr_3pt_pdf_kaon_space = contract('txyzBAba, BC, CD, txyzbc, txyzDAca -> txyz', xp.conjugate(Seq_dsp_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(fwdmu2).field, Su_fs.shift(fwdmu2).field)
                             for tins in range(T): corr_3pt_pdf_kaon[1][it, mu1, mu2, 0, tsep, tins] = xp.sum(corr_3pt_pdf_kaon_space[tins])
-                            corr_3pt_pdf_kaon_space = - contract('txyzBAba, BC, CD, txyzbc, txyzDAca -> txyz', xp.conjugate(Seq_sup_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(bwdmu2).field, Su_fs.shift(bwdmu2).field)
+                            corr_3pt_pdf_kaon_space = - contract('txyzBAba, BC, CD, txyzbc, txyzDAca -> txyz', xp.conjugate(Seq_dsp_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(bwdmu2).field, Su_fs.shift(bwdmu2).field)
                             for tins in range(T): corr_3pt_pdf_kaon[1][it, mu1, mu2, 1, tsep, tins] = xp.sum(corr_3pt_pdf_kaon_space[tins])
+
+                            corr_3pt_pdf_kaon_s_space = contract('txyzBAba, BC, CD, txyzbc, txyzDAca -> txyz', xp.conjugate(Ssp_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(fwdmu2).field, Seq_su_fs.shift(fwdmu2).field)
+                            for tins in range(T): corr_3pt_pdf_kaon_s[1][it, mu1, mu2, 0, tsep, tins] = xp.sum(corr_3pt_pdf_kaon_s_space[tins])
+                            corr_3pt_pdf_kaon_s_space = - contract('txyzBAba, BC, CD, txyzbc, txyzDAca -> txyz', xp.conjugate(Ssp_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(bwdmu2).field, Seq_su_fs.shift(bwdmu2).field)
+                            for tins in range(T): corr_3pt_pdf_kaon_s[1][it, mu1, mu2, 1, tsep, tins] = xp.sum(corr_3pt_pdf_kaon_s_space[tins])
                 # m = 2
                 if N_der >= 2:
                     for mu1 in range(4):
@@ -318,35 +330,49 @@ if __name__ == "__main__":
                             for mu3 in range(4):
                                 [fwdmu2, bwdmu2] = mu_num2st[mu2]
                                 [fwdmu3, bwdmu3] = mu_num2st[mu3]
-                                corr_3pt_pdf_pion_space = contract('txyzBAba, BC, CD, txyzbc, txyzcd, txyzDAda -> txyz', xp.conjugate(Seq_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(fwdmu2).field, U_f.shift(fwdmu2).mu(fwdmu3).field, Su_fs.shift(fwdmu2).shift(fwdmu3).field)
+                                corr_3pt_pdf_pion_space = contract('txyzBAba, BC, CD, txyzbc, txyzcd, txyzDAda -> txyz', xp.conjugate(Seq_du_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(fwdmu2).field, U_f.shift(fwdmu2).mu(fwdmu3).field, Su_fs.shift(fwdmu2).shift(fwdmu3).field)
                                 for tins in range(T): corr_3pt_pdf_pion[2][it, mu1, mu2, mu3, 0, 0, tsep, tins] = xp.sum(corr_3pt_pdf_pion_space[tins])
-                                corr_3pt_pdf_pion_space = - contract('txyzBAba, BC, CD, txyzbc, txyzcd, txyzDAda -> txyz', xp.conjugate(Seq_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(fwdmu2).field, U_f.shift(fwdmu2).mu(bwdmu3).field, Su_fs.shift(fwdmu2).shift(bwdmu3).field)
+                                corr_3pt_pdf_pion_space = - contract('txyzBAba, BC, CD, txyzbc, txyzcd, txyzDAda -> txyz', xp.conjugate(Seq_du_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(fwdmu2).field, U_f.shift(fwdmu2).mu(bwdmu3).field, Su_fs.shift(fwdmu2).shift(bwdmu3).field)
                                 for tins in range(T): corr_3pt_pdf_pion[2][it, mu1, mu2, mu3, 0, 1, tsep, tins] = xp.sum(corr_3pt_pdf_pion_space[tins])
-                                corr_3pt_pdf_pion_space = - contract('txyzBAba, BC, CD, txyzbc, txyzcd, txyzDAda -> txyz', xp.conjugate(Seq_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(bwdmu2).field, U_f.shift(bwdmu2).mu(fwdmu3).field, Su_fs.shift(bwdmu2).shift(fwdmu3).field)
+                                corr_3pt_pdf_pion_space = - contract('txyzBAba, BC, CD, txyzbc, txyzcd, txyzDAda -> txyz', xp.conjugate(Seq_du_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(bwdmu2).field, U_f.shift(bwdmu2).mu(fwdmu3).field, Su_fs.shift(bwdmu2).shift(fwdmu3).field)
                                 for tins in range(T): corr_3pt_pdf_pion[2][it, mu1, mu2, mu3, 1, 0, tsep, tins] = xp.sum(corr_3pt_pdf_pion_space[tins])
-                                corr_3pt_pdf_pion_space = contract('txyzBAba, BC, CD, txyzbc, txyzcd, txyzDAda -> txyz', xp.conjugate(Seq_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(bwdmu2).field, U_f.shift(bwdmu2).mu(bwdmu3).field, Su_fs.shift(bwdmu2).shift(bwdmu3).field)
+                                corr_3pt_pdf_pion_space = contract('txyzBAba, BC, CD, txyzbc, txyzcd, txyzDAda -> txyz', xp.conjugate(Seq_du_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(bwdmu2).field, U_f.shift(bwdmu2).mu(bwdmu3).field, Su_fs.shift(bwdmu2).shift(bwdmu3).field)
                                 for tins in range(T): corr_3pt_pdf_pion[2][it, mu1, mu2, mu3, 1, 1, tsep, tins] = xp.sum(corr_3pt_pdf_pion_space[tins])
 
-                                corr_3pt_pdf_kaon_space = contract('txyzBAba, BC, CD, txyzbc, txyzcd, txyzDAda -> txyz', xp.conjugate(Seq_sup_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(fwdmu2).field, U_f.shift(fwdmu2).mu(fwdmu3).field, Su_fs.shift(fwdmu2).shift(fwdmu3).field)
+                                corr_3pt_pdf_kaon_space = contract('txyzBAba, BC, CD, txyzbc, txyzcd, txyzDAda -> txyz', xp.conjugate(Seq_dsp_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(fwdmu2).field, U_f.shift(fwdmu2).mu(fwdmu3).field, Su_fs.shift(fwdmu2).shift(fwdmu3).field)
                                 for tins in range(T): corr_3pt_pdf_kaon[2][it, mu1, mu2, mu3, 0, 0, tsep, tins] = xp.sum(corr_3pt_pdf_kaon_space[tins])
-                                corr_3pt_pdf_kaon_space = - contract('txyzBAba, BC, CD, txyzbc, txyzcd, txyzDAda -> txyz', xp.conjugate(Seq_sup_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(fwdmu2).field, U_f.shift(fwdmu2).mu(bwdmu3).field, Su_fs.shift(fwdmu2).shift(bwdmu3).field)
+                                corr_3pt_pdf_kaon_space = - contract('txyzBAba, BC, CD, txyzbc, txyzcd, txyzDAda -> txyz', xp.conjugate(Seq_dsp_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(fwdmu2).field, U_f.shift(fwdmu2).mu(bwdmu3).field, Su_fs.shift(fwdmu2).shift(bwdmu3).field)
                                 for tins in range(T): corr_3pt_pdf_kaon[2][it, mu1, mu2, mu3, 0, 1, tsep, tins] = xp.sum(corr_3pt_pdf_kaon_space[tins])
-                                corr_3pt_pdf_kaon_space = - contract('txyzBAba, BC, CD, txyzbc, txyzcd, txyzDAda -> txyz', xp.conjugate(Seq_sup_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(bwdmu2).field, U_f.shift(bwdmu2).mu(fwdmu3).field, Su_fs.shift(bwdmu2).shift(fwdmu3).field)
+                                corr_3pt_pdf_kaon_space = - contract('txyzBAba, BC, CD, txyzbc, txyzcd, txyzDAda -> txyz', xp.conjugate(Seq_dsp_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(bwdmu2).field, U_f.shift(bwdmu2).mu(fwdmu3).field, Su_fs.shift(bwdmu2).shift(fwdmu3).field)
                                 for tins in range(T): corr_3pt_pdf_kaon[2][it, mu1, mu2, mu3, 1, 0, tsep, tins] = xp.sum(corr_3pt_pdf_kaon_space[tins])
-                                corr_3pt_pdf_kaon_space = contract('txyzBAba, BC, CD, txyzbc, txyzcd, txyzDAda -> txyz', xp.conjugate(Seq_sup_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(bwdmu2).field, U_f.shift(bwdmu2).mu(bwdmu3).field, Su_fs.shift(bwdmu2).shift(bwdmu3).field)
+                                corr_3pt_pdf_kaon_space = contract('txyzBAba, BC, CD, txyzbc, txyzcd, txyzDAda -> txyz', xp.conjugate(Seq_dsp_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(bwdmu2).field, U_f.shift(bwdmu2).mu(bwdmu3).field, Su_fs.shift(bwdmu2).shift(bwdmu3).field)
                                 for tins in range(T): corr_3pt_pdf_kaon[2][it, mu1, mu2, mu3, 1, 1, tsep, tins] = xp.sum(corr_3pt_pdf_kaon_space[tins])
+
+                                corr_3pt_pdf_kaon_s_space = contract('txyzBAba, BC, CD, txyzbc, txyzcd, txyzDAda -> txyz', xp.conjugate(Ssp_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(fwdmu2).field, U_f.shift(fwdmu2).mu(fwdmu3).field, Seq_su_fs.shift(fwdmu2).shift(fwdmu3).field)
+                                for tins in range(T): corr_3pt_pdf_kaon_s[2][it, mu1, mu2, mu3, 0, 0, tsep, tins] = xp.sum(corr_3pt_pdf_kaon_s_space[tins])
+                                corr_3pt_pdf_kaon_s_space = - contract('txyzBAba, BC, CD, txyzbc, txyzcd, txyzDAda -> txyz', xp.conjugate(Ssp_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(fwdmu2).field, U_f.shift(fwdmu2).mu(bwdmu3).field, Seq_su_fs.shift(fwdmu2).shift(bwdmu3).field)
+                                for tins in range(T): corr_3pt_pdf_kaon_s[2][it, mu1, mu2, mu3, 0, 1, tsep, tins] = xp.sum(corr_3pt_pdf_kaon_s_space[tins])
+                                corr_3pt_pdf_kaon_s_space = - contract('txyzBAba, BC, CD, txyzbc, txyzcd, txyzDAda -> txyz', xp.conjugate(Ssp_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(bwdmu2).field, U_f.shift(bwdmu2).mu(fwdmu3).field, Seq_su_fs.shift(bwdmu2).shift(fwdmu3).field)
+                                for tins in range(T): corr_3pt_pdf_kaon_s[2][it, mu1, mu2, mu3, 1, 0, tsep, tins] = xp.sum(corr_3pt_pdf_kaon_s_space[tins])
+                                corr_3pt_pdf_kaon_s_space = contract('txyzBAba, BC, CD, txyzbc, txyzcd, txyzDAda -> txyz', xp.conjugate(Ssp_fs.field), cr.Gamma(5).mat, cr.Gamma(mu1).mat, U_f.mu(bwdmu2).field, U_f.shift(bwdmu2).mu(bwdmu3).field, Seq_su_fs.shift(bwdmu2).shift(bwdmu3).field)
+                                for tins in range(T): corr_3pt_pdf_kaon_s[2][it, mu1, mu2, mu3, 1, 1, tsep, tins] = xp.sum(corr_3pt_pdf_kaon_s_space[tins])
                 # m = 3, 4, 5
                 for d in range(3, N_der + 1):
                     for mu1 in range(4):
                         for mu_list in np.ndindex(*(4,) * d):
                             for fb_list in np.ndindex(*(2,) * d):
-                                corr_3pt_pdf_pion_space = contract_pdf_term(Seq_fs, Su_fs, U_f, mu1, mu_list, fb_list)
+                                corr_3pt_pdf_pion_space = contract_pdf_term(Seq_du_fs, Su_fs, U_f, mu1, mu_list, fb_list)
                                 for tins in range(T):
                                     corr_3pt_pdf_pion[d][(it, mu1) + mu_list + fb_list + (tsep, tins)] = xp.sum(corr_3pt_pdf_pion_space[tins])
 
-                                corr_3pt_pdf_kaon_space = contract_pdf_term(Seq_sup_fs, Su_fs, U_f, mu1, mu_list, fb_list)
+                                corr_3pt_pdf_kaon_space = contract_pdf_term(Seq_dsp_fs, Su_fs, U_f, mu1, mu_list, fb_list)
                                 for tins in range(T):
                                     corr_3pt_pdf_kaon[d][(it, mu1) + mu_list + fb_list + (tsep, tins)] = xp.sum(corr_3pt_pdf_kaon_space[tins])
+
+                                corr_3pt_pdf_kaon_s_space = contract_pdf_term(Ssp_fs, Seq_su_fs, U_f, mu1, mu_list, fb_list)
+                                for tins in range(T):
+                                    corr_3pt_pdf_kaon_s[d][(it, mu1) + mu_list + fb_list + (tsep, tins)] = xp.sum(corr_3pt_pdf_kaon_s_space[tins])
         for d in range(N_der + 1):
             xp.save("../data/test/corr_3pt_pion_conf_%d_Nder_%d.npy" % (conf, d), corr_3pt_pdf_pion[d])
             xp.save("../data/test/corr_3pt_kaon_conf_%d_Nder_%d.npy" % (conf, d), corr_3pt_pdf_kaon[d])
+            xp.save("../data/test/corr_3pt_kaon_s_conf_%d_Nder_%d.npy" % (conf, d), corr_3pt_pdf_kaon_s[d])
