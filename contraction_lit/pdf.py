@@ -199,7 +199,7 @@ if __name__ == "__main__":
         #%%
         # 3pt with gamma_t
         if check:
-            gflow_niter = 2
+            gflow_niter = 1
             gflow_dt = 0.125
             corr_3pt_pion = xp.zeros((gflow_niter + 1, T, T), dtype = complex)
             corr_3pt_kaon = xp.zeros((gflow_niter + 1, T, T), dtype = complex)
@@ -214,8 +214,8 @@ if __name__ == "__main__":
                     Phi_t = Phi.keep_one_time_slice(tsep)
                     Seq_ps = ut.propagator_parallelized(Q, inv_params, Phi_t, 'd')
                     Seq_fs = ut.prop_fwd_flow(U_with_phase, gflow_params, Seq_ps)
-                    if it == 0 and tsep == 5: Seq_fs.save('Seq_it_%d_tsep%d.npy' % (it, tsep))
-                    if it == 1 and tsep == 5: Seq_fs.save('Seq_it_%d_tsep%d.npy' % (it, tsep))
+                    # if it == 0 and tsep == 5: Seq_fs.save('Seq_it_%d_tsep%d.npy' % (it, tsep))
+                    # if it == 1 and tsep == 5: Seq_fs.save('Seq_it_%d_tsep%d.npy' % (it, tsep))
                     corr_3pt_pion_space = contract('txyzBAba, BC, CD, txyzDAba -> txyz', xp.conjugate(Seq_fs.field), cr.Gamma(5).mat, cr.Gamma(0).mat, Su_fs.field)
                     for tins in range(tsep + 1):
                         corr_3pt_pion[it, tsep, tins] = xp.sum(corr_3pt_pion_space[tins])
@@ -227,6 +227,8 @@ if __name__ == "__main__":
                     Phi_t = Phi.keep_one_time_slice(tsep)
                     Seq_ps = ut.propagator_parallelized(Q, inv_params, Phi_t, 'd')
                     Seq_fs = ut.prop_fwd_flow(U_with_phase, gflow_params, Seq_ps)
+                    # if it == 0 and tsep == 5: Seq_fs.save('Seq_it_%d_tsep%d.npy' % (it, tsep))
+                    # if it == 1 and tsep == 5: Seq_fs.save('Seq_it_%d_tsep%d.npy' % (it, tsep))
                     corr_3pt_kaon_space = contract('txyzBAba, BC, CD, txyzDAba -> txyz', xp.conjugate(Seq_fs.field), cr.Gamma(5).mat, cr.Gamma(0).mat, Su_fs.field)
                     for tins in range(tsep + 1):
                         corr_3pt_kaon[it, tsep, tins] = xp.sum(corr_3pt_kaon_space[tins])
@@ -285,7 +287,7 @@ if __name__ == "__main__":
                 Seq_ps = ut.propagator_parallelized(Q, inv_params, Phi_t, 'd')
                 Seq_fs = ut.prop_fwd_flow(U_with_phase, gflow_params, Seq_ps)
                 Phi_K_t = Phi_K.keep_one_time_slice(tsep)
-                Seq_sup_ps = ut.propagator_parallelized(Qs, inv_params, Phi_K_t, 'd')
+                Seq_sup_ps = ut.propagator_parallelized(Q, inv_params, Phi_K_t, 'd')
                 Seq_sup_fs = ut.prop_fwd_flow(U_with_phase, gflow_params, Seq_sup_ps)
                 # m = 0
                 if N_der >= 0:
