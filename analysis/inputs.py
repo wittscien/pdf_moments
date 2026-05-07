@@ -25,7 +25,7 @@ def cal_params(args):
     params['figures'] = 'figures/main'
 
     params['key_2pt'] = ['pion', 'kaon']
-    params['key_3pt'] = ['pion', 'kaon']
+    params['key_3pt'] = ['pion', 'kaon', 'kaon_s']
 
     if params['ensemble'] == "test":
         params['L'] = 4
@@ -34,7 +34,7 @@ def cal_params(args):
         params['nsrc'] = 1
         params['nder'] = 3
         params['nflow'] = 1
-        params['tsnk_max_3pt'] = {'pion': 8, 'kaon': 8}
+        params['tsnk_max_3pt'] = {'pion': 8, 'kaon': 8, 'kaon_s': 8}
         params['Z_V^l'] = 6
         params['confs'] = np.arange(1000,2020,20)
         params['confs'] = np.arange(1000,1080,20)
@@ -45,7 +45,7 @@ def cal_params(args):
         params['T'] = 72
         params['spacing'] = 0.10530
         params['nsrc'] = 2
-        params['tsnk_max_3pt'] = {'Sigmac': 23, 'pion': 72, 'kaon': 72}
+        params['tsnk_max_3pt'] = {'Sigmac': 23, 'pion': 72, 'kaon': 72, 'kaon_s': 72}
         params['tsnk_max_4pt'] = {'Sigmac': 28}
         params['dt_list'] = {'Sigmac': [(1,1), (1,2), (2,1), (2,2), (2,3), (3,2), (3,3), (3,4), (4,3), (4,4), (5,5), (6,6), (7,7), (8,8), (9,9)]}
         max_dt = max(max(i, j) for (i, j) in params['dt_list']['Sigmac'])

@@ -75,7 +75,7 @@ if __name__ == '__main__':
         pdf_dir = '../%s/PDF' % datadir['mydata']
         os.makedirs(pdf_dir, exist_ok=True)
         for key in sorted(data3.keys()):
-            if key.startswith(('pion-cov-nder_', 'pion-PDF-n_', 'kaon-cov-nder_', 'kaon-PDF-n_')):
+            if key.startswith(('pion-cov-nder_', 'pion-PDF-n_', 'kaon-cov-nder_', 'kaon-PDF-n_', 'kaon_s-cov-nder_', 'kaon_s-PDF-n_')):
                 np.save('%s/%s.npy' % (pdf_dir, key), data3[key])
 
     #%%

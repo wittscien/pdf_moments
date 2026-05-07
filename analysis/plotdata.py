@@ -51,11 +51,11 @@ def plotdata(params, data2, data3, mtype, two, three, three_pdf, label=''):
 
         for k in params['key_3pt']:
             tsnk_max_3pt = params['tsnk_max_3pt'][k]
-            if k in ['pion', 'kaon']:
+            if k in ['pion', 'kaon', 'kaon_s']:
                 for diag in range(1):
                     if diag == 0:
                         data_3pt = fdata3['%s-nder_0_diag_0' % k][:,0,0] * ZVl # [conf, flow, mu, tsep, tins]
-                        data_2pt = fdata2[k]
+                        data_2pt = fdata2['kaon' if k == 'kaon_s' else k]
 
                     fig, ax = plt.subplots(1,1)
                     # for tsnk in range(1, tsnk_max_3pt):
@@ -87,7 +87,7 @@ def plotdata(params, data2, data3, mtype, two, three, three_pdf, label=''):
 
         for k in params['key_3pt']:
             tsnk_max_3pt = params['tsnk_max_3pt'][k]
-            if k in ['pion', 'kaon']:
+            if k in ['pion', 'kaon', 'kaon_s']:
                 for tf in range(nflow + 1):
                     tf_GeV2 = tf * 0.125 * 1e-3 * params['hca'] ** 2
                     if tf == 0:

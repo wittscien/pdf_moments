@@ -67,7 +67,7 @@ def add_covariant_and_pdf_operators(data3_par, hadron, nder):
         data3_par['%s-cov-nder_%d' % (hadron, d)] = combine_covariant_derivative(data3_par['%s-nder_%d_diag_0' % (hadron, d)], d)
 
     # Combine into operators relevant to PDFs. The same traceless basis is used
-    # for pion and kaon; only the hadron key prefix changes.
+    # for pion, kaon, and kaon_s; only the hadron key prefix changes.
     # Need <hadron>-cov-nder_1 to construct n = 2.
     if nder >= 1:
         # n = 2: O44 - 1/3 sum_i Oii.
@@ -131,7 +131,7 @@ def reading_2_parallel(read2,conf,datadir,params):
     T = params['T']
     V = L ** 3
     data2 = {}
-    for hadron in ['pion', 'kaon']:
+    for hadron in params['key_2pt']:
         if hadron not in params['key_2pt']:
             continue
         file_conf = '../%s/corr_conf/%s/data_2pt_%s_%s_%d.pckl'%(datadir['mydata'],params['ensemble'],params['ensemble'],hadron,conf)
@@ -165,7 +165,7 @@ def reading_3_parallel(read3,conf,datadir,params):
     V = L ** 3
     data3 = {}
     # [src-snk-sep, indices of ins]
-    for hadron in ['pion', 'kaon']:
+    for hadron in params['key_3pt']:
         if hadron not in params['key_3pt']:
             continue
         file_conf = '../%s/corr_conf/%s/data_3pt_%s_%s_%d.pckl'%(datadir['mydata'],params['ensemble'],params['ensemble'],hadron,conf)
