@@ -26,13 +26,13 @@ import plotdata_etmc
 import fit_two
 import quantities
 
-# In[]
+#%%
 # 2026.05.03: Fix bugs from copy and cross check.
 # 2026.03.02: Start the PDF project. Copy from the Sigmac project.
 # 2025.06.03: Start the Sigmac project. Copy from the Tcc project.
 
 if __name__ == '__main__':
-    # In[]
+    #%%
     if len(sys.argv) != 1:
         parser = argparse.ArgumentParser(description='Do PDF analysis.')
         parser.add_argument('-e','--ensemble', type = str, required = True, metavar = '', help='ensemble')
@@ -48,14 +48,14 @@ if __name__ == '__main__':
             ensemble = 'test'
             ensemble = 'cC211'
             tech = 'jackknife'
-            plotdata = 1
-            two = 0
+            plotdata = 0
+            two = 1
             read2 = 'fast'
             read3 = 'fast'
         args = Args()
     print(args)
 
-    # In[]
+    #%%
     etmc = args.ensemble in inputs.ETMC_ENSEMBLES
     params = inputs.cal_params(args)
     datadir = params['datadir']
@@ -66,7 +66,7 @@ if __name__ == '__main__':
     options = {}
     options['two'] = args.two
     options['plotdata'] = args.plotdata
-    options['conf_tests'] = 1
+    options['conf_tests'] = 0
 
     print('N = %d'%(params['N']))
     print('Nb = %d'%(params['Nb']))
@@ -91,7 +91,7 @@ if __name__ == '__main__':
     # Conf test
     if options['conf_tests']:
         conf_tests.conf_dist(params, data2, data3)
-        # conf_tests.bin_test(params, data2)
+        conf_tests.bin_test(params, data2)
         # conf_tests.boots_test(params, data2)
 
     #%%
@@ -105,32 +105,32 @@ if __name__ == '__main__':
     else:
         [data2, data3] = preprocess.preprocess(args, datadir, params, relist, data2, data3)
 
-    # In[]
+    #%%
     # Plot the original data
     if options['plotdata']:
         if etmc:
-            plotdata_etmc.plotdata(params, data2, data3, metadata, two=True, three=True, three_pdf=True, label='plain')
+            plotdata_etmc.plotdata(params, data2, data3, metadata, two=True, three=True, three_pdf=True, result=None, label='plain')
         else:
             plotdata.plotdata(params, data2, data3, mtype='exp', two=True, three=True, three_pdf=True, label='plain')
 
-    # In[]
+    #%%
     # One particle fit
     if options['two']:
-        params['just_changing_tmin'] = 0
+        params['just_changing_tmin'] = 1
         params['lazy_tmin'] = 0
-        [fdata2, result_para, result_chi2dof, result, ans, energy_non_labels] = fit_two.fit_two(params, data2, mtype='cosh', obj='corr')
+        [fdata2, result_para, result_chi2dof, result, ans] = fit_two.fit_two(params, data2, mtype='cosh', obj='corr')
 
-        dfile = open('../%s/spectra/%s/results_one_%s_%s.pckl'%(datadir['mydata'],params['ensname'],params['ensname'],params['tech']),'wb')
-        all_results = [data2, fdata2, result_para, result_chi2dof, result, ans, energy_non_labels]
+        dfile = open('../%s/spectra/%s/results_one_%s_%s.pckl'%(datadir['mydata'],params['ensemble'],params['ensemble'],params['tech']),'wb')
+        all_results = [data2, fdata2, result_para, result_chi2dof, result, ans]
         pickle.dump(all_results,dfile)
         dfile.close()
 
     else:
-        dfile = open('../%s/spectra/%s/results_one_%s_%s.pckl'%(datadir['mydata'],params['ensname'],params['ensname'],params['tech']),'rb')
-        [data2, fdata2, result_para, result_chi2dof, result, ans, energy_non_labels] = pickle.load(dfile)
+        dfile = open('../%s/spectra/%s/results_one_%s_%s.pckl'%(datadir['mydata'],params['ensemble'],params['ensemble'],params['tech']),'rb')
+        [data2, fdata2, result_para, result_chi2dof, result, ans] = pickle.load(dfile)
         dfile.close()
 
-#     # In[]
+    #%%
 #     # Dispersion relation
 #     if options['dispersion']:
 #         params['just_changing_tmin'] = 0
@@ -146,47 +146,14 @@ if __name__ == '__main__':
 #         [disfdata, disresult_para, disresult_chi2dof, disresult] = pickle.load(dfile)
 #         dfile.close()
 
-#     # In[]
-#     # Save results to params
-#     params_oneres = saveparams.saveparams(result, relen)
-#     params2.update(params_oneres)
-
-#     # In[]
-#     # Two particle data
-#     # Correlation matrix
-#     #weight = corr_weight.corr_weight(params, result)
-#     weight='no'
-#     few = corr_few.corr_few(params)
-#     corrmat = calcorrmat.calcorrmat(params, data4, symmetrize=False, few=few, weight=weight)
-#     dfile = open('../%s/corr/%s/corrmat_%s_%s_%d%d%d_%s_%s.pckl'%(datadir['mydata'],params['ensname'],params['ensname'],params['isospin'],params['P'][0],params['P'][1],params['P'][2],params['irrep'],params['tech']),'wb')
-#     pickle.dump(corrmat,dfile)
-#     dfile.close()
-
-#     # In[]
-#     # Pure GEVP
-#     if options['GEVP']:
-#         [t0, tref, tv] = setting_t0.setting_t0(params)
-#         params2['t0'] = t0
-#         params2['mtype'] = 'Gexp'
-#         params2['just_changing_tmin'] = 0
-#         params2['lazy_tmin'] = 0
-#         only_plot = 0
-#         [Gdata, Gfdata, Gresult_para, Gresult_chi2dof, Gresult, Gans] = fit_GEVP.fit_GEVP(params, params2, corrmat, t0, tref, tv, mtype=params2['mtype'], selected2=selected2, weighto=weight, only_plot=only_plot)
-
-#         dfile = open('../%s/spectra/%s/results_two_%s_%s_%d%d%d_%s_%s.pckl'%(datadir['mydata'],params['ensname'],params['ensname'],params['isospin'],params['P'][0],params['P'][1],params['P'][2],params['irrep'],params['tech']),'wb')
-#         all_results = [Gdata, Gfdata, Gresult_para, Gresult_chi2dof, Gresult, Gans]
-#         pickle.dump(all_results,dfile)
-#         dfile.close()
-#     else:
-#         dfile = open('../%s/spectra/%s/results_two_%s_%s_%d%d%d_%s_%s.pckl'%(datadir['mydata'],params['ensname'],params['ensname'],params['isospin'],params['P'][0],params['P'][1],params['P'][2],params['irrep'],params['tech']),'rb')
-#         [Gdata, Gfdata, Gresult_para, Gresult_chi2dof, Gresult, Gans] = pickle.load(dfile)
-#         dfile.close()
+    #%%
+    # From here assume using ETMC data and do not write explicitly "if etmc" anymore.
+    # Plot the 3pt data again with fitted mass
+    if options['plotdata']:
+        plotdata_etmc.plotdata(params, data2, data3, metadata, two=False, three=True, three_pdf=False, result=result, label='mass')
 
 
-#     # In[]
+    #%%
 #     # Some physical quantities
 #     if options['GEVP']:
 #         quantities.quantities(params, params2, relen, result, Gresult, weight)
-
-
-# # %%

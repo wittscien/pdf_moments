@@ -9,7 +9,7 @@ from flow_matching import c_numeric
 
 
 
-def plotdata(params, data2, data3, metadata, two, three, three_pdf, label=''):
+def plotdata(params, data2, data3, metadata, two, three, three_pdf, result, label=''):
     tech = params['tech']
     relen = params['relen']
 
@@ -42,8 +42,13 @@ def plotdata(params, data2, data3, metadata, two, three, three_pdf, label=''):
         ZVl = params['Z_V^l']
         ZVs = params['Z_V^s']
         len_tsep_list = len(params['tsep_list'])
+        result_use = {'pion': [[0, 0.08559]], 'kaon': [[0, 0.17888]]} if result is None else result
 
         for k in params['key_3pt']:
+            if k == 'pion':
+                k_one = 'pion'
+            elif k in ['kaon', 'kaon_s']:
+                k_one = 'kaon'
             tit = r'$Ens=%s \quad %s$' % (params['ensemble'], k)
             data_2pt = fdata2['kaon' if k == 'kaon_s' else k] # [ls, tsep]
 
@@ -53,12 +58,13 @@ def plotdata(params, data2, data3, metadata, two, three, three_pdf, label=''):
                 x = np.arange(tsep+1) - tsep / 2
                 R = np.zeros((relen, tsep+1))
                 for ls in range(relen):
+                    m_one = result_use[k_one][ls][1]
                     if k == 'pion':
-                        data_3pt_tsep = data_3pt[ls] * ZVl * (1 + np.exp(-0.095*(T-2*tsep)))
+                        data_3pt_tsep = data_3pt[ls] * ZVl * (1 + np.exp(-m_one * (T-2*tsep)))
                     elif k == 'kaon':
-                        data_3pt_tsep = data_3pt[ls] * ZVs * (1 + np.exp(-0.18*(T-2*tsep)))
+                        data_3pt_tsep = data_3pt[ls] * ZVs * (1 + np.exp(-m_one*(T-2*tsep)))
                     elif k == 'kaon_s':
-                        data_3pt_tsep = - data_3pt[ls] * ZVs * (1 + np.exp(-0.18*(T-2*tsep)))
+                        data_3pt_tsep = - data_3pt[ls] * ZVs * (1 + np.exp(-m_one*(T-2*tsep)))
                     data_2pt_tsep = data_2pt[ls][tsep]
                     R[ls] = data_3pt_tsep / data_2pt_tsep
                 mean = tp.cal_mean(R)
@@ -81,8 +87,11 @@ def plotdata(params, data2, data3, metadata, two, three, three_pdf, label=''):
         nflow = len(metadata['tau_list']) - 1
 
         for k in params['key_3pt']:
+            if k == 'pion':
+                k_one = 'pion'
+            elif k in ['kaon', 'kaon_s']:
+                k_one = 'kaon'
             tit = r'$Ens=%s \quad %s$' % (params['ensemble'], k)
-            mpi = 0.095
             # n is the number of mu
             for n in range(3, 7):
                 for tf in range(nflow + 1):
@@ -90,14 +99,17 @@ def plotdata(params, data2, data3, metadata, two, three, three_pdf, label=''):
 
                     fig, ax = plt.subplots(1,1)
                     for itsep, tsep in enumerate(params['tsep_list']):
-                        data_3pt_up = fdata3['%s-PDF-n_%d' % (k, n)][tsep][:,tf,:]
-                        data_3pt_down = fdata3['%s-PDF-n_2' % (k)][tsep][:,tf,:] * (- mpi) ** (n - 1)
-                        if tf != 0:
-                            data_3pt_up *= c_numeric(2, tf_GeV2, 2)
-                            data_3pt_down *= c_numeric(n + 1, tf_GeV2, 2)
                         x = np.arange(tsep+1) - tsep / 2
                         R = np.zeros((relen, tsep+1))
                         for ls in range(relen):
+                            m_one = result_use[k_one][ls][1]
+
+                            data_3pt_up = fdata3['%s-PDF-n_%d' % (k, n)][tsep][:,tf,:]
+                            data_3pt_down = fdata3['%s-PDF-n_2' % (k)][tsep][:,tf,:] * (- m_one) ** (n - 1)
+                            if tf != 0:
+                                data_3pt_up *= c_numeric(2, tf_GeV2, 2)
+                                data_3pt_down *= c_numeric(n + 1, tf_GeV2, 2)
+
                             data_3pt_up_tsep = data_3pt_up[ls]
                             data_3pt_down_tsep = data_3pt_down[ls]
                             R[ls] = data_3pt_up_tsep / data_3pt_down_tsep

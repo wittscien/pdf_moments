@@ -17,7 +17,7 @@ def cal_params(args):
     etmc = params['ensemble'] in ETMC_ENSEMBLES
 
     params['mommax'] = 1
-    params['ns_min'] = 2
+    params['ns_min'] = 1
     params['ns_max'] = 2
 
     params['tau'] = 1
@@ -138,8 +138,8 @@ def cal_params(args):
         params['L'] = 48
         params['T'] = 96
         params['spacing'] = 0.0684
-        params['Z_V^l'] = 1
-        params['Z_V^s'] = 1
+        params['Z_V^l'] = 0.73
+        params['Z_V^s'] = 0.73
         params['tsep_list'] = [32, 40, 48]
         exceptional = []
 
@@ -200,8 +200,8 @@ def cal_params(args):
     params['hca'] = 197.3269804 / params['spacing']
 
     # Binning setting (Nb: N after binning)
-    params['bin'] = False
-    params['Nb'] = 100
+    params['bin'] = True
+    params['Nb'] = 60
     if not params['bin']: params['Nb'] = params['N']
 
     # Resampling setting

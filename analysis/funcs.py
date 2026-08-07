@@ -65,8 +65,21 @@ def bootstrap_relist(thing):
 
 def bootstrap_cov(thing):
     N = thing.shape[0] - 1
-    # np.sqrt(np.cov(np.transpose(a))*(a.shape[0]-1)/a.shape[0]) = np.std(a,axis=0)
-    return np.cov(np.transpose(thing[1:])) * (N-1) / N
+    mean = thing[0]
+    X = thing - mean
+    N = thing.shape[0] - 1
+    C = np.einsum('ni, nj -> ij', X, X) / N
+    return C
+
+
+def jackknife_cov(thing):
+    N = thing.shape[0] - 1
+    mean = thing[0]
+    X = thing - mean
+    N = thing.shape[0] - 1
+    C = np.einsum('ni, nj -> ij', X, X) / N
+    C *= (N - 1)
+    return C
 
 
 def resamplelist(length,tparams):
@@ -93,8 +106,11 @@ def cal_err(thing,tech):
 
 
 def cal_cov(thing,tech):
+    # Cannot use np.cov because we have to use thing[0]
     if (tech == 'bootstrap'):
         return bootstrap_cov(thing)
+    elif (tech == 'jackknife'):
+        return jackknife_cov(thing)
 
 
 def cov_ellipse(cov):
@@ -214,9 +230,9 @@ def plot_corr(data, params, ylog=True, cylim='no', sv='', tit='', figdir=''):
         ax.set_yscale('symlog',linthresh=1e-35)
         #ax.set_yscale('log')
     ax.set_title(tit)
-    plt.draw()
     Path('../%s/%s/'%(params['figures'],figdir)).mkdir(parents=True, exist_ok=True)
     plt.savefig('../%s/%s/corr_%s.pdf'%(params['figures'],figdir,sv),transparent=True)
+    show_in_spyder()
 
 
 def cal_mass(data,mtype='exp',tau=1):
@@ -244,9 +260,24 @@ def cal_mass(data,mtype='exp',tau=1):
     return meff
 
 
-def plot_meff(data,params_test,tau=1,mtype='exp',mylim='no',sv='',tit='',figdir='',weighto='no',Z=0):
-    weight = 0 if weighto == 'no' else weighto
+def cal_A(data,mtype='exp',tau=1):
+    # Effective ground-state amplitude calculated with the effective mass.
+    T = data.shape[0]
+    x = np.arange(T)
+    meff = cal_mass(data,mtype=mtype,tau=tau)
+    if mtype == 'exp':
+        Aeff = np.exp(meff * x) * data
+    elif mtype == 'cosh':
+        Aeff = np.exp(meff * T / 2) / (2 * np.cosh(meff * (x - T / 2))) * data
+    elif mtype == 'sinh':
+        Aeff = np.exp(meff * T / 2) / (4 * np.sinh(meff/2) * np.sinh(meff * (x - T / 2 + 1/2))) * data
+    return Aeff
+
+
+def plot_meff(data,params_test,tau=1,mtype='exp',mylim='no',sv='',tit='',figdir='',m_pi='no'):
+    # 2025.3.14: Happy Pi festival! The weight will be taken care in the correlation matrix.
     fig, ax = plt.subplots(1,1)
+    fig.set_size_inches(6.4, 4)
     meff = {}
     meff_mean = {}
     meff_err = {}
@@ -264,62 +295,93 @@ def plot_meff(data,params_test,tau=1,mtype='exp',mylim='no',sv='',tit='',figdir=
             meff[k][j] = cal_mass(data[k][j],mtype=mtype,tau=tau)
         meff_mean[k] = cal_mean(meff[k])
         meff_err[k] = cal_err(meff[k],tech=params['tech'])
-        ax.errorbar(x=x+0.05*i,y=meff_mean[k]+weight,yerr=meff_err[k],ls='None',marker='o',color=inputs.clrscm(len(data),i),mec=inputs.clrscm(len(data),i),capsize=2,fillstyle='none',label=inputs.labels(k))
-        if Z != 0:
-            ax_Z = fig.add_axes([0.8,0.15+i*(1-0.15*2)/len(data.keys()),0.08,0.05])
-            colors = ['orange'] * len(params['operators1']) + ['gray'] * len(params['operators2']) + ['blue'] * len(params['operators1_1D'])
-            ax_Z.barh(np.arange(len(data.keys())),Z[k],color=colors,height=0.95)
-            ax_Z.set_xticks([])
-            ax_Z.set_yticks([])
+        mask_large = ((meff_err[k] / np.abs(meff_mean[k])) > 0.3) | np.isnan(meff_mean[k]) | np.isnan(meff_err[k])
+        mask_normal = ~mask_large
+        ax.errorbar(x=x[mask_normal]+0.05*i,y=meff_mean[k][mask_normal],yerr=meff_err[k][mask_normal],ls='None',marker='o',color=inputs.clrscm(len(data),i),mec=inputs.clrscm(len(data),i),capsize=2,fillstyle='none',label=inputs.labels(k))
+        ax.errorbar(x=x[mask_large]+0.05*i,y=meff_mean[k][mask_large],yerr=meff_err[k][mask_large],ls='None',marker='o',color=inputs.clrscm(len(data),i),mec=inputs.clrscm(len(data),i),capsize=2,fillstyle='none',alpha=0.1)
+        if (not all(np.isnan(i) for i in meff_mean[k])):
+            #ylimup = max(ylimup,(np.nanmax(meff_mean[k][3:T//2-3]) - np.nanmin(meff_mean[k][3:T//2-3])) / 2 + np.nanmin(meff_mean[k][3:T//2-3]))
+            #ylimdown = min(ylimdown,np.nanmin(meff_mean[k][3:T//2-3]) - meff_err[k][np.nanargmin(meff_mean[k][3:T//2-3])+3] * 10)
+            ylimup = max(ylimup,np.nanmax(meff_mean[k][int(0.15*T):T//2-3]))
+            ylimdown = min(ylimdown,np.nanmin(meff_mean[k][int(0.15*T):T//2-3]))
     dif = (ylimup - ylimdown) / 5
-    ax.axis([-0.2,T//2+3,ylimdown-dif+weight,ylimup+weight])
+    ax.axis([-0.2,T//2+3,ylimdown-dif,ylimup])
+    ax.axis([-0.2,T//2,ylimdown-dif,ylimup])
+    ax.set_xlim([0,30])
     #ax.axis([-0.2,T,0,3])
     if mylim != 'no':
         ax.set_ylim(mylim)
     ax.set_xlabel(r'$t$')
-    if weighto == 'no' or weighto == 0:
-        ax.set_ylabel(r'$m_{\mathrm{eff}}$')
-    else:
-        ax.set_ylabel(r'$m_{\mathrm{eff}}+\delta$')
+    ax.set_ylabel(r'$m_{\mathrm{eff}}$')
+    # In mpi unit
+    if m_pi != 'no':
+        aE_to_Edmpi = lambda aE: aE / m_pi
+        Edmpi_to_aE = lambda Edmpi: Edmpi * m_pi
+        secax_y = ax.secondary_yaxis('right', functions=(aE_to_Edmpi, Edmpi_to_aE))
+        secax_y.set_ylabel(r'$m_{\mathrm{eff}} / M_{\pi}$')
     ax.set_title(tit)
-    ax.legend()
+    # ax.legend()
+    # plt.tight_layout()
     Path('../%s/%s/'%(params['figures'],figdir)).mkdir(parents=True, exist_ok=True)
     plt.savefig('../%s/%s/meff_%s.pdf'%(params['figures'],figdir,sv),transparent=True)
     show_in_spyder()
 
 
-def cal_Z(params2,mtype,t0,Gresult,corrmat_mean,v_ti,nstates):
+def plot_Z(params,E0_matrix,corrmat,vecs,t0,tv,tech,colors='b',figdir='',sv=''):
     # Using Gresult_mean, [0]
+    # v_ti has been sorted and has a shape of [relen, T, n, n]
     # Dudek rho pipi PRD 2013: Eq. 3
-    Z = {}
-    max_bar = 0
-    for k in Gresult.keys():
-        n = int(k.split('_')[1])
-        if (nstates == 2) and (mtype == 'Gexp'):
-            [E0, A, Ep] = Gresult[k][0]
-            if (E0 > Ep):
-                E0,Ep = Ep,E0
-        Z[k] = abs(np.sqrt(2 * E0) * np.exp(E0 * t0 / 2) * (np.conjugate(v_ti[:,n]) @ corrmat_mean[:,:,t0]))
-        max_bar = max(max_bar, np.max(Z[k]))
-    for state in range(len(Gresult.keys())):
-        #norm = 0
-        #for k in Gresult.keys():
-        #    norm += abs(Z[k][state])
-        for k in Gresult.keys():
-            #Z[k][state] = abs(Z[k][state]) / norm
-            Z[k][state] = abs(Z[k][state]) / max_bar
-    return Z
+    relen = corrmat.shape[0]
+    N = corrmat.shape[1]
+    T = corrmat.shape[3]
+    Z_ni = np.zeros((relen, T, N, N))
+    for t in range(T):
+        for ls in range(relen):
+            vdagger_C_ls = contract("nj, ji -> ni", vecs[ls][t].conj().T, corrmat[ls,:,:,t0])
+            for n in range(N):
+                E0 = E0_matrix[ls][n]
+                Z_ni[ls][t][n] = np.abs(np.sqrt(2 * E0) * np.exp(E0 * t0 / 2) * vdagger_C_ls[n,:])
+            # normalization with mean, the maxim in each column
+            if ls == 0 and t == tv: norm = np.max(Z_ni[ls][t], axis=0)
+    for t in range(T):
+        for ls in range(relen):
+            for i in range(N):
+                Z_ni[ls][t][:,i] /= norm[i]
+
+    # 1. The plateau of Z
+    fig, ax = plt.subplots(1, N, figsize=(N*6,4), sharey=True)
+    Z_ni_mean = cal_mean(Z_ni)
+    Z_ni_err = cal_err(Z_ni,tech=tech)
+    x = np.arange(T)
+    for n in range(N):
+        for i in range(N):
+            ax[n].errorbar(x=x+0.05*i,y=Z_ni_mean[:,n,i],yerr=Z_ni_err[:,n,i],ls='None',marker='o',color=inputs.clrscm(N,i),mec=inputs.clrscm(N,i),capsize=2,fillstyle='none',label='op %d'%(i))
+        ax[n].set_title(r'$E_{%d}$' % n)
+        ax[n].axis([-0.2,T//2+3,0,1])
+        ax[n].set_xlabel(r'$t$')
+        ax[n].legend()
+    ax[0].set_ylabel(r'$Z$')
+    Path('../%s/%s/'%(params['figures'],figdir)).mkdir(parents=True, exist_ok=True)
+    plt.savefig('../%s/%s/GEVPZ_%s.pdf'%(params['figures'],figdir,sv),transparent=True)
+    plt.show()
+
+
+    # 2. The histogram of Z at tv
+    fig, ax = plt.subplots(1, N, figsize=(N*3,4), sharey=True)
+    width = 0.2
+    for n in range(N):
+        yerr = Z_ni_err[tv,n] if not np.any(np.isnan(Z_ni_err[tv,n])) else 1
+        ax[n].bar(np.arange(N)*width, Z_ni_mean[tv,n], yerr=yerr, color=colors, width=width, alpha=0.9, capsize=2)
+        ax[n].set_title(r'$E_{%d}$' % n)
+        ax[n].set_xticks([])
+        ax[n].set_yticks([])
+        ax[n].set_ylim(0, 1)
+    Path('../%s/%s/'%(params['figures'],figdir)).mkdir(parents=True, exist_ok=True)
+    plt.savefig('../%s/%s/overlap_%s.pdf'%(params['figures'],figdir,sv),transparent=True)
+    plt.show()
 
 
 def plot_Aeff(data,params,tau=1,mtype='exp',sv='',tit='',figdir=''):
-    def cal(data):
-        if mtype == 'exp':
-            Aeff = np.exp(meff * x) * data
-        elif mtype == 'cosh':
-            Aeff = np.exp(meff * T / 2) / (2 * np.cosh(meff * (x - T / 2))) * data
-        elif mtype == 'sinh':
-            Aeff = np.exp(meff * T / 2) / (4 * np.sinh(meff/2) * np.sinh(meff * (x - T / 2 + 1/2))) * data
-        return Aeff
     T = params['T']
     Aeff = {}
     Aeff_mean = {}
@@ -329,8 +391,7 @@ def plot_Aeff(data,params,tau=1,mtype='exp',sv='',tit='',figdir=''):
         x = np.arange(data[k].shape[1])
         Aeff[k] = np.zeros_like(data[k])
         for j in range(data[k].shape[0]):
-            meff = cal_mass(data[k][j],mtype=mtype,tau=tau)
-            Aeff[k][j] = cal(data[k][j])
+            Aeff[k][j] = cal_A(data[k][j],mtype=mtype,tau=tau)
         Aeff_mean[k] = cal_mean(Aeff[k])
         Aeff_err[k] = cal_err(Aeff[k],tech=params['tech'])
         if len(data) == 1:
@@ -352,28 +413,33 @@ def plot_Aeff(data,params,tau=1,mtype='exp',sv='',tit='',figdir=''):
         ax.legend(loc='upper left')
     plt.title(tit)
     plt.tight_layout()
-    plt.draw()
     Path('../%s/%s/'%(params['figures'],figdir)).mkdir(parents=True, exist_ok=True)
     plt.savefig('../%s/%s/Aeff_%s.pdf'%(params['figures'],figdir,sv),transparent=True)
+    show_in_spyder()
 
 
-def plot_stability(k,fit_num,paramso,selectedo,result,result_chi,tit='',sv='',figdir='',weighto='no'):
+def plot_stability(k,fit_num,paramso,selectedo,result,result_chi,tit='',sv='',figdir=''):
     # Should use bootstraped result
-    weight = 0 if weighto == 'no' else weighto
     tau = paramso['tau']
     fig, axes = plt.subplots(2,1,sharex=True,gridspec_kw=dict(height_ratios=[4,1],hspace=0))
+    fig.set_size_inches(6.4, 4)
     params = dict(paramso)
     selected = dict(selectedo)
-    params['tmin'] = paramso['tmin'][k]
-    params['tmax'] = paramso['tmax'][k]
     selected['tmin'] = selectedo['tmin'][k]
     selected['tmax'] = selectedo['tmax'][k]
-    tmin0 = params['tmin'][0]
-    tmin1 = params['tmin'][1]
-    x = np.arange(tmin0,params['tmin'][1]+1,tau)
+    selected['n'] = selectedo['n'][k]
     ylimup = 0
     ylimdown = 0
+    tmin00 = 1000
+    tmin11 = -1
     for n in range(params['ns_min'],params['ns_max']+1):
+        if params['mtype'] == 'const':
+            if n != 1: continue
+        tmin0 = params['tmin'][n][k][0]
+        tmin1 = params['tmin'][n][k][1]
+        tmin00 = min(tmin00, tmin0)
+        tmin11 = max(tmin11, tmin1)
+        x = np.arange(tmin0,tmin1+1,tau)
         E0_mean = np.zeros_like(x,dtype=float)
         E0_err = np.zeros_like(x,dtype=float)
         chi2_dof = np.zeros_like(x,dtype=float)
@@ -384,14 +450,42 @@ def plot_stability(k,fit_num,paramso,selectedo,result,result_chi,tit='',sv='',fi
             else:
                 E0_mean[i] = result[n][i*tau+tmin0][selected['tmax']]['mean'][1]
                 E0_err[i] = result[n][i*tau+tmin0][selected['tmax']]['err'][1]
-        axes[0].errorbar(x=x+0.1*(n-1),y=E0_mean+weight,yerr=E0_err,mfc='none',color=inputs.clrs[n],marker=inputs.mrkr[n],alpha=inputs.alphas[n],linestyle='None',label=r'$n_s = %d$'%n,capsize=2)
+        if n == selected['n']:
+            selected_time = (selected['tmin']-tmin0) // tau
+            E0_err_selected_time = E0_err[selected_time]
+            ylimup = E0_mean[selected_time] + E0_err[selected_time] * 8
+            ylimdown = E0_mean[selected_time] - E0_err[selected_time] * 3
+
+
+    for n in range(params['ns_min'],params['ns_max']+1):
+        if params['mtype'] == 'const':
+            if n != 1: continue
+        tmin0 = params['tmin'][n][k][0]
+        tmin1 = params['tmin'][n][k][1]
+        tmin00 = min(tmin00, tmin0)
+        tmin11 = max(tmin11, tmin1)
+        x = np.arange(tmin0,tmin1+1,tau)
+        E0_mean = np.zeros_like(x,dtype=float)
+        E0_err = np.zeros_like(x,dtype=float)
+        chi2_dof = np.zeros_like(x,dtype=float)
+        for i in range(len(x)):
+            if ('mtype' in params) and ((params['mtype'] == 'Gsinh') or (params['mtype'] == 'Gexp') or (params['mtype'] == 'Gcosh') or (params['mtype'] == 'const')):
+                E0_mean[i] = result[n][i*tau+tmin0][selected['tmax']]['mean'][0]
+                E0_err[i] = result[n][i*tau+tmin0][selected['tmax']]['err'][0]
+            else:
+                E0_mean[i] = result[n][i*tau+tmin0][selected['tmax']]['mean'][1]
+                E0_err[i] = result[n][i*tau+tmin0][selected['tmax']]['err'][1]
+        mask_large = E0_err > E0_err_selected_time * 3
+        mask_normal = ~mask_large
+        axes[0].errorbar(x=x[mask_normal]+0.1*(n-1),y=E0_mean[mask_normal],yerr=E0_err[mask_normal],mfc='none',color=inputs.clrs[n],marker=inputs.mrkr[n],alpha=inputs.alphas[n],linestyle='None',label=r'$n_s = %d$'%n,capsize=2)
+        axes[0].errorbar(x=x[mask_large]+0.1*(n-1),y=E0_mean[mask_large],yerr=E0_err[mask_large],mfc='none',color=inputs.clrs[n],marker=inputs.mrkr[n],linestyle='None',capsize=2,alpha=0.1)
         '''if (n > 1):
             E1_mean = np.zeros_like(x,dtype=float)
             E1_err = np.zeros_like(x,dtype=float)
             for i in range(len(x)):
                 E1_mean[i] = result[n][i+tmin0][selected['tmax']]['mean'][(fit_num+1)*1+fit_num]
                 E1_err[i] = result[n][i+tmin0][selected['tmax']]['err'][(fit_num+1)*1+fit_num]
-            axes[0].errorbar(x=x+0.1*(n-1),y=E1_mean+weight,yerr=E1_err,mfc='none',color=inputs.clrs[n],marker=inputs.mrkr[n],alpha=inputs.alphas[n],linestyle='None',capsize=2)'''
+            axes[0].errorbar(x=x+0.1*(n-1),y=E1_mean,yerr=E1_err,mfc='none',color=inputs.clrs[n],marker=inputs.mrkr[n],alpha=inputs.alphas[n],linestyle='None',capsize=2)'''
         # chi2 plot
         for i in range(len(x)):
             chi2_dof[i] = result_chi[n][i*tau+tmin0][selected['tmax']]
@@ -399,38 +493,112 @@ def plot_stability(k,fit_num,paramso,selectedo,result,result_chi,tit='',sv='',fi
         axes[1].scatter(x=x+0.1*(n-1),y=chi2_dof,facecolor='w',edgecolor=inputs.clrs[n],marker=inputs.mrkr[n])
         if n == selected['n']:
             selected_time = (selected['tmin']-tmin0) // tau
-            axes[0].scatter(selected['tmin']+0.1*(n-1),E0_mean[selected_time]+weight,color='k',marker=inputs.mrkr[n])
-            axes[0].fill_between(np.array([0,tmin1+1]),E0_mean[selected_time]+weight-E0_err[selected_time],E0_mean[selected_time]+weight+E0_err[selected_time],color='y',alpha=0.2)
+            axes[0].scatter(selected['tmin']+0.1*(n-1),E0_mean[selected_time],color='k',marker=inputs.mrkr[n])
+            axes[0].fill_between(np.array([0,params['T']/2+1]),E0_mean[selected_time]-E0_err[selected_time],E0_mean[selected_time]+E0_err[selected_time],color='y',alpha=0.2)
+            '''if (n > 1):
+                axes[0].scatter(selected['tmin']+0.1*(n-1),E1_mean[selected_time],color='k',marker=inputs.mrkr[n])
+                axes[0].fill_between(np.array([0,tmin1+1]),E1_mean[selected_time]-E1_err[selected_time],E1_mean[selected_time]+E1_err[selected_time],color='y',alpha=0.2)'''
+            axes[1].scatter(selected['tmin']+0.1*(n-1),chi2_dof[selected_time],color='k',marker=inputs.mrkr[n])
+
+    # E plot
+    if 'delta' in tit:
+        axes[0].set_ylabel(r'$\delta E_n$')
+    else:
+        axes[0].set_ylabel(r'$E_n$')
+    axes[0].axis([tmin00-1,tmin11+1,ylimdown,ylimup])
+    # axes[0].set_xticks(np.arange(tmin00-1,tmin11+1))
+    axes[0].tick_params(axis='x',bottom=True,direction='inout')
+    axes[0].legend(ncol=params['ns_max'],columnspacing=0.5,loc=1)
+    axes[0].set_title(tit)
+    # chi2 plot
+    axes[1].hlines(1,0,tmin11+1,linestyle=':',alpha=0.3,color='k')
+    axes[1].axis([tmin00-1,tmin11+1,-0.1,2])
+    axes[1].set_ylabel(r'$\chi^2/\mathrm{d.o.f.}$')
+    axes[1].tick_params(axis='x',direction='in')
+    axes[1].set_xlabel(r'$t_{\mathrm{min}}$')
+
+    plt.tight_layout()
+    Path('../%s/%s/'%(params['figures'],figdir)).mkdir(parents=True, exist_ok=True)
+    plt.savefig('../%s/%s/stability_%s.pdf'%(params['figures'],figdir,sv),transparent=True)
+    plt.show()
+
+
+def plot_stability_ratio(k,fit_num,paramso,selectedo,result,result_chi,tit='',sv='',figdir=''):
+    # Should use bootstraped result
+    tau = paramso['tau']
+    fig, axes = plt.subplots(2,1,sharex=True,gridspec_kw=dict(height_ratios=[4,1],hspace=0))
+    params = dict(paramso)
+    selected = dict(selectedo)
+    relen = paramso['relen']
+    selected['tmin'] = selectedo['tmin'][k]
+    selected['tmax'] = selectedo['tmax'][k]
+    selected['n'] = selectedo['n'][k]
+    ylimup = 0
+    ylimdown = 0
+    tmin00 = 1000
+    tmin11 = -1
+
+    Gnum = int(k.split('_')[1])
+    with open('../%s/spectra_full/%s/full_results_two_%s_%s_%d%d%d_%s_%s_%s.pckl'%(params['datadir']['mydata'],params['ensname'],params['ensname'],params['isospin'],params['P'][0],params['P'][1],params['P'][2],params['irrep'],k,params['tech']),'rb') as dfile:
+        result_full_two = pickle.load(dfile)
+
+    for n in range(params['ns_min'],params['ns_max']+1):
+        tmin0 = params['tmin'][n][k][0]
+        tmin1 = params['tmin'][n][k][1]
+        tmin00 = min(tmin00, tmin0)
+        tmin11 = max(tmin11, tmin1)
+        x = np.arange(tmin0,tmin1+1,tau)
+        E0_matrix = np.zeros((relen, len(x)), dtype=float)
+        chi2_dof = np.zeros_like(x,dtype=float)
+        for i in range(len(x)):
+            for ls in range(relen):
+                E0_matrix[ls][i] = result_full_two[n][i*tau+tmin0][selected['tmax']][ls].x[1] + 2 * params['pion_%d' % (Gnum)]['m'][ls]
+        E0_mean = cal_mean(E0_matrix)
+        E0_err = cal_err(E0_matrix, paramso['tech'])
+        axes[0].errorbar(x=x+0.1*(n-1),y=E0_mean,yerr=E0_err,mfc='none',color=inputs.clrs[n],marker=inputs.mrkr[n],alpha=inputs.alphas[n],linestyle='None',label=r'$n_s = %d$'%n,capsize=2)
+        '''if (n > 1):
+            E1_mean = np.zeros_like(x,dtype=float)
+            E1_err = np.zeros_like(x,dtype=float)
+            for i in range(len(x)):
+                E1_mean[i] = result[n][i+tmin0][selected['tmax']]['mean'][(fit_num+1)*1+fit_num]
+                E1_err[i] = result[n][i+tmin0][selected['tmax']]['err'][(fit_num+1)*1+fit_num]
+            axes[0].errorbar(x=x+0.1*(n-1),y=E1_mean,yerr=E1_err,mfc='none',color=inputs.clrs[n],marker=inputs.mrkr[n],alpha=inputs.alphas[n],linestyle='None',capsize=2)'''
+        # chi2 plot
+        for i in range(len(x)):
+            chi2_dof[i] = result_chi[n][i*tau+tmin0][selected['tmax']]
+        #axes[1].scatter(x=x+0.1*(n-1),y=chi2_dof,facecolor='none',edgecolor=inputs.clrs[n],marker=inputs.mrkr[n],zorder=10)
+        axes[1].scatter(x=x+0.1*(n-1),y=chi2_dof,facecolor='w',edgecolor=inputs.clrs[n],marker=inputs.mrkr[n])
+        if n == selected['n']:
+            selected_time = (selected['tmin']-tmin0) // tau
+            axes[0].scatter(selected['tmin']+0.1*(n-1),E0_mean[selected_time],color='k',marker=inputs.mrkr[n])
+            axes[0].fill_between(np.array([0,params['T']/2+1]),E0_mean[selected_time]-E0_err[selected_time],E0_mean[selected_time]+E0_err[selected_time],color='y',alpha=0.2)
             '''if (n > 1):
                 axes[0].scatter(selected['tmin']+0.1*(n-1),E1_mean[selected_time],color='k',marker=inputs.mrkr[n])
                 axes[0].fill_between(np.array([0,tmin1+1]),E1_mean[selected_time]-E1_err[selected_time],E1_mean[selected_time]+E1_err[selected_time],color='y',alpha=0.2)'''
             axes[1].scatter(selected['tmin']+0.1*(n-1),chi2_dof[selected_time],color='k',marker=inputs.mrkr[n])
             
-            ylimup = E0_mean[selected_time]+weight + E0_err[selected_time] * 8
-            ylimdown = E0_mean[selected_time]+weight - E0_err[selected_time] * 3
+            ylimup = E0_mean[selected_time] + E0_err[selected_time] * 8
+            ylimdown = E0_mean[selected_time] - E0_err[selected_time] * 3
     # E plot
     if 'delta' in tit:
         axes[0].set_ylabel(r'$\delta E_n$')
     else:
-        if weighto == 'no' or weighto == 0:
-            axes[0].set_ylabel(r'$E_n$')
-        else:
-            axes[0].set_ylabel(r'$E_n+\delta$')
-    axes[0].axis([tmin0-1,tmin1+1,ylimdown,ylimup])
-    axes[0].set_xticks(np.arange(tmin0-1,tmin1+1))
+        axes[0].set_ylabel(r'$E_n$')
+    axes[0].axis([tmin00-1,tmin11+1,ylimdown,ylimup])
+    axes[0].set_xticks(np.arange(tmin00-1,tmin11+1))
     axes[0].tick_params(axis='x',bottom=True,direction='inout')
     axes[0].legend(ncol=params['ns_max'],columnspacing=0.5,loc=1)
     axes[0].set_title(tit)
     # chi2 plot
-    axes[1].hlines(1,0,tmin1+1,linestyle=':',alpha=0.3,color='k')
-    axes[1].axis([tmin0-1,tmin1+1,-0.1,4.1])
+    axes[1].hlines(1,0,tmin11+1,linestyle=':',alpha=0.3,color='k')
+    axes[1].axis([tmin00-1,tmin11+1,-0.1,4.1])
     axes[1].set_ylabel(r'$\chi^2/\mathrm{d.o.f.}$')
     axes[1].tick_params(axis='x',direction='in')
     axes[1].set_xlabel(r'$t_{\mathrm{min}}$')
 
-    plt.draw()
     Path('../%s/%s/'%(params['figures'],figdir)).mkdir(parents=True, exist_ok=True)
     plt.savefig('../%s/%s/stability_%s.pdf'%(params['figures'],figdir,sv),transparent=True)
+    plt.show()
 
 
 def fit_function(x,para,nstates,params,mtype):
@@ -455,15 +623,25 @@ def fit_function(x,para,nstates,params,mtype):
         f = (1-A) * np.exp(-E0*(x-params['t0'])) + A * np.exp(-Ep*(x-params['t0']))
     elif (nstates == 1) and (mtype == 'Gcosh'):
         [E0] = para
-        f = np.cosh(E0/2*(params['T']-(x-params['t0']))) / np.cosh(E0/2*(params['T']))
+        # 2025.2.1: correct the fit form
+        # f = np.cosh(E0/2*(params['T']-(x-params['t0']))) / np.cosh(E0/2*(params['T']))
+        t0 = params['t0']
+        T = params['T']
+        f = (np.exp(-E0*(x-t0)) + np.exp(-E0*(T-(x-t0)))) / (1 + np.exp(-E0*T))
     elif (nstates == 2) and (mtype == 'Gcosh'):
         [E0, A, Ep] = para
         if (E0 > Ep):
             E0,Ep = Ep,E0
-        f = (1-A) * np.cosh(E0/2*(params['T']-(x-params['t0']))) / np.cosh(E0/2*(params['T'])) + A * np.cosh(Ep/2*(params['T']-(x-params['t0']))) / np.cosh(Ep/2*(params['T']))
+        # 2025.2.1: correct the fit form
+        # f = (1-A) * np.cosh(E0/2*(params['T']-(x-params['t0']))) / np.cosh(E0/2*(params['T'])) + A * np.cosh(Ep/2*(params['T']-(x-params['t0']))) / np.cosh(Ep/2*(params['T']))
+        t0 = params['t0']
+        T = params['T']
+        f = (1-A) * (np.exp(-E0*(x-t0)) + np.exp(-E0*(T-(x-t0)))) / (1 + np.exp(-E0*T)) + A * (np.exp(-Ep*(x-t0)) + np.exp(-Ep*(T-(x-t0)))) / (1 + np.exp(-Ep*T))
     elif nstates == 1:
         [A0, E0] = para
-        if (mtype == 'cosh'): # normal correlator
+        if (mtype == 'exp'):
+            f = A0 * np.exp(-E0*x)
+        elif (mtype == 'cosh'): # normal correlator
             f = A0 * (np.exp(-E0*x)+np.exp(-E0*(params['T']-x)))
         elif (mtype == 'sinh'): # subtracted correlator
             f = 4 * A0 * np.exp(-E0*params['T']/2) * np.sinh(E0/2) * np.sinh(E0*(x-params['T']/2+1/2))
@@ -482,18 +660,21 @@ def fit_function(x,para,nstates,params,mtype):
         if (E0 > E1):
             E0,E1 = E1,E0
             A0,A1 = A1,A0
-        if (mtype == 'cosh'): # normal correlator
+        if (mtype == 'exp'):
+            f = A0 * np.exp(-E0*x) + A1 * np.exp(-E1*x)
+        elif (mtype == 'cosh'): # normal correlator
             f = A0 * (np.exp(-E0*x)+np.exp(-E0*(params['T']-x))) + A1 * (np.exp(-E1*x)+np.exp(-E1*(params['T']-x)))
         elif (mtype == 'sinh'): # subtracted correlator
             f = 4 * A0 * np.exp(-E0*params['T']/2) * np.sinh(E0/2) * np.sinh(E0*(x-params['T']/2+1/2)) + 4 * A1 * np.exp(-E1*params['T']/2) * np.sinh(E1/2) * np.sinh(E1*(x-params['T']/2+1/2))
     return f
 
 
-def plot_result(data,paramso,selectedo,result,ans,tau=1,mtype='exp',cylim='no',tit='',sv='',figdir='',weighto='no'):
+def plot_result(data,paramso,selectedo,result,ans,tau=1,mtype='exp',cylim='no',tit='',sv='',figdir=''):
     # 2023.03.23: Use only the good result
     # Use all data and all result
-    weight = 0 if weighto == 'no' else weighto
-    fig, axes = plt.subplots(2,1,sharex=True,gridspec_kw=dict(hspace=0))
+    # fig, axes = plt.subplots(2,1,sharex=True,gridspec_kw=dict(hspace=0))
+    fig, axes = plt.subplots(1,1)
+    fig.set_size_inches(6.4, 4)
     relen = paramso['relen']
     data_mean = {}
     data_err = {}
@@ -504,10 +685,9 @@ def plot_result(data,paramso,selectedo,result,ans,tau=1,mtype='exp',cylim='no',t
     params = dict(paramso)
     selected = dict(selectedo)
     for k in data.keys():
-        params['tmin'] = paramso['tmin'][k]
-        params['tmax'] = paramso['tmax'][k]
         selected['tmin'] = selectedo['tmin'][k]
         selected['tmax'] = selectedo['tmax'][k]
+        selected['n'] = selectedo['n'][k]
     for i,k in enumerate(data.keys()):
         # Data
         data_mean[k] = cal_mean(data[k])
@@ -518,8 +698,8 @@ def plot_result(data,paramso,selectedo,result,ans,tau=1,mtype='exp',cylim='no',t
             meff[k][j] = cal_mass(data[k][j],mtype=mtype,tau=tau)
         meff_mean[k] = cal_mean(meff[k])
         meff_err[k] = cal_err(meff[k],params['tech'])
-        axes[0].errorbar(x=x,y=data_mean[k],yerr=data_err[k],ls='None',marker='o',color=inputs.clrs[i],mec=inputs.clrs[i],capsize=2,fillstyle='none',label=inputs.labels(k))
-        axes[1].errorbar(x=x,y=meff_mean[k]+weight,yerr=meff_err[k],ls='None',marker='o',color=inputs.clrs[i],mec=inputs.clrs[i],capsize=2,fillstyle='none')
+        # axes[0].errorbar(x=x,y=data_mean[k],yerr=data_err[k],ls='None',marker='o',color=inputs.clrs[i],mec=inputs.clrs[i],capsize=2,fillstyle='none',label=inputs.labels(k))
+        axes.errorbar(x=x,y=meff_mean[k],yerr=meff_err[k],ls='None',marker='o',color=inputs.clrs[i],mec=inputs.clrs[i],capsize=2,fillstyle='none')
 
         # Reconstructed
         xx = np.arange(selected['tmin'],selected['tmax'],dt)
@@ -535,87 +715,136 @@ def plot_result(data,paramso,selectedo,result,ans,tau=1,mtype='exp',cylim='no',t
             elif (mtype =='const'):
                 recon_meff_matrix[ls] = fit_function(xx,result_para,selected['n'],params,mtype)
                 recon_corr_matrix[ls] = np.exp(-recon_meff_matrix[ls] * xx)
+                recon_corr_matrix[ls] = np.exp(-recon_meff_matrix[ls] * xx) * data_mean[k][selected['tmin']] * np.exp(recon_meff_matrix[ls][0] * selected['tmin'])
         recon_corr_mean = cal_mean(recon_corr_matrix)
         recon_corr_err = cal_err(recon_corr_matrix,tech=params['tech'])
         recon_meff_mean = cal_mean(recon_meff_matrix)
         recon_meff_err = cal_err(recon_meff_matrix,tech=params['tech'])
         #axes[0].plot(xx,recon_corr_mean-recon_corr_err,color=inputs.clrs[i],alpha=0.3)
         #axes[0].plot(xx,recon_corr_mean+recon_corr_err,color=inputs.clrs[i],alpha=0.3)
-        axes[0].fill_between(xx,recon_corr_mean-recon_corr_err,recon_corr_mean+recon_corr_err,color=inputs.clrs[i],alpha=0.3,edgecolor='none')
+        # axes[0].fill_between(xx,recon_corr_mean-recon_corr_err,recon_corr_mean+recon_corr_err,color=inputs.clrs[i],alpha=0.3,edgecolor='none')
 
         xx = xx[:-1]
         recon_meff_mean = recon_meff_mean[:-1]
         recon_meff_err = recon_meff_err[:-1]
         #axes[1].plot(xx,recon_meff_mean-recon_meff_err,color=inputs.clrs[i],alpha=0.3)
         #axes[1].plot(xx,recon_meff_mean+recon_meff_err,color=inputs.clrs[i],alpha=0.3)
-        axes[1].fill_between(xx,recon_meff_mean+weight-recon_meff_err,recon_meff_mean+weight+recon_meff_err,color=inputs.clrs[i],alpha=0.3,edgecolor='none')
+        axes.fill_between(xx,recon_meff_mean-recon_meff_err,recon_meff_mean+recon_meff_err,color=inputs.clrs[i],alpha=0.3,edgecolor='none')
 
         # Result value
         if (mtype != 'Gsinh') and (mtype != 'Gexp') and (mtype != 'Gcosh') and (mtype != 'const'):
-            #axes[1].hlines(ans['mean'][len(data)]+weight,0,params['T']/2+1.5,linestyle=':',alpha=0.4,color='k')
-            axes[1].fill_between(np.array([selected['tmin'],selected['tmax']]),ans['mean'][len(data)]+weight-ans['err'][len(data)],ans['mean'][len(data)]+weight+ans['err'][len(data)],color='gray',alpha=0.4,edgecolor='none')
-            axes[1].fill_between(np.array([0,selected['tmin']]),ans['mean'][len(data)]+weight-ans['err'][len(data)],ans['mean'][len(data)]+weight+ans['err'][len(data)],color='gray',alpha=0.2,edgecolor='none')
-            axes[1].fill_between(np.array([selected['tmax'],params['T']/2+1.5]),ans['mean'][len(data)]+weight-ans['err'][len(data)],ans['mean'][len(data)]+weight+ans['err'][len(data)],color='gray',alpha=0.2,edgecolor='none')
+            #axes[1].hlines(ans['mean'][len(data)],0,params['T']/2+1.5,linestyle=':',alpha=0.4,color='k')
+            axes.fill_between(np.array([selected['tmin'],selected['tmax']]),ans['mean'][len(data)]-ans['err'][len(data)],ans['mean'][len(data)]+ans['err'][len(data)],color='gray',alpha=0.4,edgecolor='none')
+            axes.fill_between(np.array([0,selected['tmin']]),ans['mean'][len(data)]-ans['err'][len(data)],ans['mean'][len(data)]+ans['err'][len(data)],color='gray',alpha=0.2,edgecolor='none')
+            axes.fill_between(np.array([selected['tmax'],params['T']/2+1.5]),ans['mean'][len(data)]-ans['err'][len(data)],ans['mean'][len(data)]+ans['err'][len(data)],color='gray',alpha=0.2,edgecolor='none')
         else:
-            #axes[1].hlines(ans['mean'][0]+weight,0,params['T']/2+1.5,linestyle=':',alpha=0.4,color='k')
-            axes[1].fill_between(np.array([selected['tmin'],selected['tmax']]),ans['mean'][0]+weight-ans['err'][0],ans['mean'][0]+weight+ans['err'][0],color='gray',alpha=0.4,edgecolor='none')
-            axes[1].fill_between(np.array([0,selected['tmin']]),ans['mean'][0]+weight-ans['err'][0],ans['mean'][0]+weight+ans['err'][0],color='gray',alpha=0.2,edgecolor='none')
-            axes[1].fill_between(np.array([selected['tmax'],params['T']/2+1.5]),ans['mean'][0]+weight-ans['err'][0],ans['mean'][0]+weight+ans['err'][0],color='gray',alpha=0.2,edgecolor='none')
-    axes[0].set_title(tit)
-    axes[1].set_xlim([0,params['T']/2+1.5])
-    axes[0].set_ylim([np.nanmin(data_mean[k]) - data_err[k][np.nanargmin(data_mean[k])] * 10,np.nanmax(data_mean[k]) + data_err[k][np.nanargmax(data_mean[k])] * 10])
-    if cylim != 'no':
-        axes[0].set_ylim(cylim)
-    axes[0].set_ylim([recon_corr_mean[-1]-recon_corr_err[-1],recon_corr_mean[0]+recon_corr_err[0]])
+            #axes[1].hlines(ans['mean'][0],0,params['T']/2+1.5,linestyle=':',alpha=0.4,color='k')
+            axes.fill_between(np.array([selected['tmin'],selected['tmax']]),ans['mean'][0]-ans['err'][0],ans['mean'][0]+ans['err'][0],color='gray',alpha=0.4,edgecolor='none')
+            axes.fill_between(np.array([0,selected['tmin']]),ans['mean'][0]-ans['err'][0],ans['mean'][0]+ans['err'][0],color='gray',alpha=0.2,edgecolor='none')
+            axes.fill_between(np.array([selected['tmax'],params['T']/2+1.5]),ans['mean'][0]-ans['err'][0],ans['mean'][0]+ans['err'][0],color='gray',alpha=0.2,edgecolor='none')
+    axes.set_title(tit)
+    axes.set_xlim([0,params['T']/2+1.5])
+    # axes.set_xlim([0,30])
+    # axes[0].set_ylim([np.nanmin(data_mean[k]) - data_err[k][np.nanargmin(data_mean[k])] * 10,np.nanmax(data_mean[k]) + data_err[k][np.nanargmax(data_mean[k])] * 10])
+    # if cylim != 'no':
+    #     axes[0].set_ylim(cylim)
+    # axes[0].set_ylim([recon_corr_mean[-1]-recon_corr_err[-1],recon_corr_mean[0]+recon_corr_err[0]])
     if (mtype != 'Gsinh') and (mtype != 'Gexp') and (mtype != 'Gcosh') and (mtype != 'const'):
-        axes[1].set_ylim([ans['mean'][len(data)]+weight-ans['err'][len(data)]*3,ans['mean'][len(data)]+weight+ans['err'][len(data)]*10])
+        axes.set_ylim([ans['mean'][len(data)]-ans['err'][len(data)]*3,ans['mean'][len(data)]+ans['err'][len(data)]*10])
     else:
-        axes[1].set_ylim([ans['mean'][0]+weight-ans['err'][0]*9,ans['mean'][0]+weight+ans['err'][0]*30])
-    axes[1].set_xlabel(r'$t$')
-    axes[0].set_ylabel(r'$C(t)$')
-    if weighto == 'no':
-        axes[1].set_ylabel(r'$m_{\mathrm{eff}}$')
-    else:
-        axes[1].set_ylabel(r'$m_{\mathrm{eff}}+\delta$')
-    axes[0].legend()
+        axes.set_ylim([ans['mean'][0]-ans['err'][0]*9,ans['mean'][0]+ans['err'][0]*30])
+    axes.set_xlabel(r'$t$')
+    # axes[0].set_ylabel(r'$C(t)$')
+    axes.set_ylabel(r'$m_{\mathrm{eff}}$')
+    # axes.legend()
     #axes[0].set_yscale('symlog',linthresh=1e-30)
-    axes[0].set_yscale('log')
-    plt.draw()
+    # if np.all(recon_corr_mean > 0):
+    #     axes[0].set_yscale('log')
+    plt.tight_layout()
     Path('../%s/%s/'%(params['figures'],figdir)).mkdir(parents=True, exist_ok=True)
     plt.savefig('../%s/%s/result_%s.pdf'%(params['figures'],figdir,sv),transparent=True)
+    plt.show()
 
 
-def GEVP(params, corrmat, t0, tref, key, tv):
-    # Source of evil
-    #corrmat = corrmat.real
-    Nstates = corrmat.shape[1]
-    relen = corrmat.shape[0]
-    Gdata = np.zeros([relen,Nstates,params['T']],dtype=complex)
+def GEVP_sort(method, corrmat_ls, Gseries_list, v_list, t0, tref):
+    # Only one sample
+    N = len(Gseries_list[0])
+    T = len(Gseries_list)
 
-    for i in range(relen):
-        [Gseries, refv] = linalg.eig(corrmat[i,:,:,tref],corrmat[i,:,:,t0])
-        refv = refv[:,np.argsort(Gseries)]
+    if method == 'value':
+        for t in range(T):
+            sort_ind = np.argsort(Gseries_list[t])
+            Gseries_list[t] = Gseries_list[t][sort_ind]
+            v_list[t] = v_list[t][:,sort_ind]
+            if t > t0:
+                Gseries_list[t] = Gseries_list[t][::-1]
+                v_list[t] = v_list[t][:,::-1]
+
+    elif method == 'vector':
+        refv = v_list[tref][:,np.argsort(Gseries_list[tref])]
         if tref > t0:
             refv = refv[:,::-1]
+        for t in range(T):
+            state_args = np.zeros(N, dtype=int) - 1
+            for refstate in range(N):
+                state_overlaps = np.zeros(N, dtype=complex)
+                for state in range(N):
+                    state_overlaps[state] = np.dot(np.conjugate(refv[:,refstate]), np.dot(corrmat_ls[:,:,t0], v_list[t][:,state]))
+                # From largest to smallest
+                overlap_sorted_ind = np.argsort(-np.abs(state_overlaps))
+                for i in range(N):
+                    if overlap_sorted_ind[i] not in state_args:
+                        state_args[refstate] = overlap_sorted_ind[i]
+                        break
+                # state_args[refstate] = overlap_sorted_ind[0]
+            Gseries_list[t] = Gseries_list[t][state_args]
+            v_list[t] = v_list[t][:,state_args]
 
-        for t in range(params['T']):
-            [Gseries, v] = linalg.eig(corrmat[i,:,:,t],corrmat[i,:,:,t0])
-            stateargs = np.zeros(Nstates,dtype=int)
-            for refstate in range(Nstates):
-                stateoverlaps = np.zeros(Nstates,dtype=complex)
-                for state in range(Nstates):
-                    stateoverlaps[state] = np.dot(np.conjugate(refv[:,refstate]),np.dot(corrmat[i,:,:,t0],v[:,state]))
-                stateargs[refstate] = np.argmax(np.abs(stateoverlaps))
-            Gdata[i,:,t] = Gseries[stateargs]
-            if i == 0:
-                if t == tv:
-                    v_ti = v[:,stateargs]
+    elif method == 'vector_repeat':
+        refv = v_list[tref][:,np.argsort(Gseries_list[tref])]
+        if tref > t0:
+            refv = refv[:,::-1]
+        for t in range(T):
+            state_args = np.zeros(N, dtype=int)
+            for refstate in range(N):
+                state_overlaps = np.zeros(N, dtype=complex)
+                for state in range(N):
+                    state_overlaps[state] = np.dot(np.conjugate(refv[:,refstate]), np.dot(corrmat_ls[:,:,t0], v_list[t][:,state]))
+                state_args[refstate] = np.argmax(np.abs(state_overlaps))
+            Gseries_list[t] = Gseries_list[t][state_args]
+            v_list[t] = v_list[t][:,state_args]
 
+    return Gseries_list, v_list
+
+
+def GEVP(corrmat, method, key, t0, tref):
+    # Source of evil
+    #corrmat = corrmat.real
+    N = corrmat.shape[1]
+    relen = corrmat.shape[0]
+    T = corrmat.shape[3]
     Gfdata = {}
-    for i in range(Nstates):
-        Gfdata['%s_%d'%(key,i)] = np.copy(Gdata[:,i,:].real)
+    for i in range(N):
+        Gfdata['%s_%d' % (key, i)] = np.zeros([relen, T])
+    vecs = np.zeros([relen, T, N, N], dtype=complex)
 
-    return Gdata, Gfdata, v_ti
+    for ls in range(relen):
+        Gseries_list = []
+        v_list = []
+        for t in range(T):
+            [Gseries, v] = linalg.eig(corrmat[ls,:,:,t],corrmat[ls,:,:,t0])
+            Gseries_list.append(Gseries)
+            v_list.append(v)
+
+        [Gseries_list, v_list] = GEVP_sort(method, corrmat[ls], Gseries_list, v_list, t0, tref)
+
+        for t in range(T):
+            for i in range(N):
+                Gfdata['%s_%d' % (key, i)][ls,t] = np.copy(Gseries_list[t][i].real)
+
+        vecs[ls] = np.array(v_list)
+
+    return Gfdata, vecs
 
 
 def chi(para,data,Linv,tmin,tmax,nstates,params,mtype):
@@ -715,21 +944,21 @@ def fitting(p,paramso,data,mtype,selectedo,correlated=True):
     result_chi2dof = {}
     params = dict(paramso)
     selected = dict(selectedo)
-    for k in data.keys():
-        params['tmin'] = paramso['tmin'][k]
-        params['tmax'] = paramso['tmax'][k]
-        selected['tmin'] = selectedo['tmin'][k]
-        selected['tmax'] = selectedo['tmax'][k]
+    # Only one key
+    k = list(data.keys())[0]
+    selected['tmin'] = selectedo['tmin'][k]
+    selected['tmax'] = selectedo['tmax'][k]
+    selected['n'] = selectedo['n'][k]
 
     for n in range(params['ns_min'],params['ns_max']+1):
         result[n] = {}
         result_para[n] = {}
         result_chi2dof[n] = {}
-        for tmin in range(params['tmin'][0],params['tmin'][1]+1):
+        for tmin in range(params['tmin'][n][k][0],params['tmin'][n][k][1]+1):
             result[n][tmin] = {}
             result_para[n][tmin] = {}
             result_chi2dof[n][tmin] = {}
-            for tmax in range(params['tmax'][0],params['tmax'][1]+1):
+            for tmax in range(params['tmax'][n][k][0],params['tmax'][n][k][1]+1):
                 result[n][tmin][tmax] = {}
                 result_para[n][tmin][tmax] = {}
 
@@ -737,21 +966,19 @@ def fitting(p,paramso,data,mtype,selectedo,correlated=True):
         # Cov matrix
         cov = {}
         for i,k in enumerate(data.keys()):
-            if params['tech'] == 'bootstrap':
-                cov[k] = np.cov(np.transpose(data[k][1:],axes=(1,0)))
-            elif params['tech'] == 'jackknife':
-                N = relen - 1
-                cov[k] = np.cov(np.transpose(data[k][1:],axes=(1,0))) / N * (N - 1) ** 2
+            cov[k] = cal_cov(data[k], params['tech'])
             if not correlated:
-                cov[k] = np.diag(np.diag(cov[k]))
+                cov_diag = np.diag(cov[k])
+                cov_diag = np.where(cov_diag == 0, 1e-32, cov_diag)
+                cov[k] = np.diag(cov_diag)
         # Fitting
         for n in range(params['ns_min'],params['ns_max']+1):
             params['nstates'] = n
             prior = gen_prior(p, n, mtype)
             for i,k in enumerate(data.keys()):
-                #for tmin in tqdm.tqdm(range(params['tmin'][0],params['tmin'][1]+1),desc='Fit: %s'%(k)):
-                for tmin in range(params['tmin'][0],params['tmin'][1]+1,tau):
-                    for tmax in range(params['tmax'][0],params['tmax'][1]+1,tau):
+                #for tmin in tqdm.tqdm(range(params['tmin'][n][k][0],params['tmin'][n][k][1]+1),desc='Fit: %s'%(k)):
+                for tmin in range(params['tmin'][n][k][0],params['tmin'][n][k][1]+1,tau):
+                    for tmax in range(params['tmax'][n][k][0],params['tmax'][n][k][1]+1,tau):
                         Linv = {}
                         Linv[k] = np.linalg.inv(np.linalg.cholesky(cov[k][tmin:tmax+1:tau,tmin:tmax+1:tau]))
                         # Resample fit
@@ -760,11 +987,11 @@ def fitting(p,paramso,data,mtype,selectedo,correlated=True):
                         for ls in range(relen):
                             result[n][tmin][tmax][ls] = pool_result[ls]
         # Saving purly for just changing tmin
-        dfile = open('../%s/spectra_full/%s/full_results_two_%s_%s_%d%d%d_%s_%s_%s.pckl'%(params['datadir']['mydata'],params['ensname'],params['ensname'],params['isospin'],params['P'][0],params['P'][1],params['P'][2],params['irrep'],k,params['tech']),'wb')
+        dfile = open('../%s/spectra_full/%s/full_results_2pt_%s_%s_%s.pckl'%(params['datadir']['mydata'],params['ensemble'],params['ensemble'],k,params['tech']),'wb')
         pickle.dump(result,dfile)
         dfile.close()
     else:
-        dfile = open('../%s/spectra_full/%s/full_results_two_%s_%s_%d%d%d_%s_%s_%s.pckl'%(params['datadir']['mydata'],params['ensname'],params['ensname'],params['isospin'],params['P'][0],params['P'][1],params['P'][2],params['irrep'],k,params['tech']),'rb')
+        dfile = open('../%s/spectra_full/%s/full_results_2pt_%s_%s_%s.pckl'%(params['datadir']['mydata'],params['ensemble'],params['ensemble'],k,params['tech']),'rb')
         result = pickle.load(dfile)
         dfile.close()
 
@@ -773,8 +1000,8 @@ def fitting(p,paramso,data,mtype,selectedo,correlated=True):
         params['nstates'] = n
         prior = gen_prior(p, n, mtype)
         for i,k in enumerate(data.keys()):
-            for tmin in range(params['tmin'][0],params['tmin'][1]+1,tau):
-                for tmax in range(params['tmax'][0],params['tmax'][1]+1,tau):
+            for tmin in range(params['tmin'][n][k][0],params['tmin'][n][k][1]+1,tau):
+                for tmax in range(params['tmax'][n][k][0],params['tmax'][n][k][1]+1,tau):
                     para_matrix = np.zeros([relen,len(prior)])
                     for ls in range(relen):
                         fit = result[n][tmin][tmax][ls]
@@ -785,15 +1012,16 @@ def fitting(p,paramso,data,mtype,selectedo,correlated=True):
 
     # Set a lazy tmin selection
     selected_lazy_tmin = -1
+    n = selected['n']
     if paramso['lazy_tmin'] == True:
         chi2_score = 10000
         has_good_fit = False
-        for tmin in range(params['tmin'][0],params['tmin'][1]+1,tau):
+        for tmin in range(params['tmin'][n][k][0],params['tmin'][n][k][1]+1,tau):
             err = result_para[n][tmin][tmax]['err'][0]
             if err < 0.005:
                 has_good_fit = True
                 break
-        for tmin in range(params['tmin'][0],params['tmin'][1]+1,tau):
+        for tmin in range(params['tmin'][n][k][0],params['tmin'][n][k][1]+1,tau):
             err = result_para[n][tmin][tmax]['err'][0]
             if err >= 0.005 and has_good_fit:
                 continue

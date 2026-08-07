@@ -8,7 +8,6 @@ import inputs
 
 
 def conf_dist(params, data2, data3, sv=''):
-    tech = params['tech']
     fig, ax = plt.subplots(1, 1)
 
     tsep = 20
@@ -27,42 +26,41 @@ def conf_dist(params, data2, data3, sv=''):
     ax.set_ylabel(r'$C(tsep = %d)$'%(tsep))
     plt.tight_layout()
     ax.legend()
-    Path('../%s/%s/%s/%s/'%(params['figures'],'configurations',params['ensemble'],tech)).mkdir(parents=True, exist_ok=True)
-    plt.savefig('../%s/%s/%s/%s/dist_%s.pdf'%(params['figures'],'configurations',params['ensemble'],tech,sv),transparent=True)
+    Path('../%s/%s/%s/'%(params['figures'],'configurations',params['ensemble'])).mkdir(parents=True, exist_ok=True)
+    plt.savefig('../%s/%s/%s/dist_%s.pdf'%(params['figures'],'configurations',params['ensemble'],sv),transparent=True)
     tp.show_in_spyder()
 
 
 def bin_test(params, data2, sv=''):
     tech = 'jackknife'
+    t = params['T'] // 2
 
     Nb_list = np.arange(params['N'], 1, -1)
     mean_list = np.zeros_like(Nb_list, dtype=float)
     err_list = np.zeros_like(Nb_list, dtype=float)
     for i in tqdm.tqdm(range(len(Nb_list)), desc='Bin test'):
         Nb = Nb_list[i]
-        corr_pion_0 = tp.bin_data(data2['Sigmac'], Nb).real
+        corr_pion = tp.bin_data(data2['pion'], Nb).real
         params_test = {'tech': tech}
 
         relist = tp.resamplelist(Nb, params_test)
-        relen = len(relist)
-        re_corr_pion_0 = np.zeros([relen, corr_pion_0.shape[1]])
-        re_corr_pion_0[0] = np.mean(corr_pion_0[relist[0]],axis=0)
-        for ls in range(1, relen):
-            re_corr_pion_0[ls] = np.mean(corr_pion_0[relist[ls][:-1]],axis=0)
+        re_corr_pion = tp.resample_general(corr_pion, tech, relist)
+        re_corr_pion = (np.roll(re_corr_pion[:,::-1], 1, axis=1) + re_corr_pion) / 2
 
-        meff_pion_0_t = tp.cal_mass(re_corr_pion_0, 'exp', 1)[:,30]
-        mean_list[i] = tp.cal_mean(meff_pion_0_t)
-        err_list[i] = tp.cal_err(meff_pion_0_t, tech)
+        meff_pion_t = np.array([tp.cal_mass(corr, 'cosh', 1)[t] for corr in re_corr_pion])
+        mean_list[i] = tp.cal_mean(meff_pion_t)
+        err_list[i] = tp.cal_err(meff_pion_t, tech)
 
     fig, ax = plt.subplots(1, 1)
     ax.errorbar(x=params['N']/Nb_list,y=mean_list,yerr=err_list,ls='None',marker='o',color='k',capsize=1,markersize=1)
     ax.set_xlabel(r'$N/Nb$')
-    ax.set_xlim([0,70])
-    ax.set_ylabel(r'$err(m(t=30))$')
+    ax.set_xlim([0,71])
+    ax.set_ylabel(r'$m_{\mathrm{eff}}(t=%d)$'%t)
     plt.tight_layout()
     plt.draw()
-    Path('../%s/%s/%s/%s/'%(params['figures'],'configurations',params['ensemble'],tech)).mkdir(parents=True, exist_ok=True)
-    plt.savefig('../%s/%s/%s/%s/bin_test_%s.pdf'%(params['figures'],'configurations',params['ensemble'],tech,sv),transparent=True)
+    Path('../%s/%s/%s/'%(params['figures'],'configurations',params['ensemble'])).mkdir(parents=True, exist_ok=True)
+    plt.savefig('../%s/%s/%s/bin_test_%s.pdf'%(params['figures'],'configurations',params['ensemble'],sv),transparent=True)
+    tp.show_in_spyder()
 
 
 def boots_test(params, data2, sv=''):
