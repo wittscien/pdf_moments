@@ -18,7 +18,7 @@ import tqdm
 def show_in_spyder():
     # Spyder sets this environment variable. In VS Code or terminal runs, save
     # the figure but do not pop up a window.
-    if 'SPYDER_KERNEL_ID' in os.environ:
+    if 'SPYDER_ARGS' in os.environ:
         plt.show()
 
 

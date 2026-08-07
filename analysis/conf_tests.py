@@ -3,21 +3,25 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tqdm
 import funcs as tp
+import inputs
 
 
 
 def conf_dist(params, data2, data3, sv=''):
     tech = params['tech']
-    ZVl = params['Z_V^l']
     fig, ax = plt.subplots(1, 1)
 
-    tsep = 2
+    tsep = 20
 
-    corr_value = data2['pion-direct'][:,tsep]
-    ax.scatter(x=params['confs'],y=corr_value,marker='o',color='k', label='2pt')
+    corr_value = data2['pion'][:,tsep]
+    ax.scatter(x=np.arange(len(params['confs'])),y=corr_value,marker='o',color='k', label='2pt')
 
-    corr_value = data3['pion-nder_0_diag_0'][:,0,0,tsep,tsep//2] * ZVl
-    ax.scatter(x=params['confs'],y=corr_value,marker='o',color='r', label='3pt')
+    # ZVl = params['Z_V^l']
+    # corr_value = data3['pion-nder_0_diag_0'][:,0,0,tsep,tsep//2] * ZVl
+    # ax.scatter(x=params['confs'],y=corr_value,marker='o',color='r', label='3pt')
+
+    corr_value = data3['pion-PDF-n_1'][32][:,1,16]
+    ax.scatter(x=np.arange(len(params['confs'])),y=corr_value,marker='o',color='r', label='3pt')
 
     ax.set_xlabel('conf #')
     ax.set_ylabel(r'$C(tsep = %d)$'%(tsep))
@@ -25,7 +29,7 @@ def conf_dist(params, data2, data3, sv=''):
     ax.legend()
     Path('../%s/%s/%s/%s/'%(params['figures'],'configurations',params['ensemble'],tech)).mkdir(parents=True, exist_ok=True)
     plt.savefig('../%s/%s/%s/%s/dist_%s.pdf'%(params['figures'],'configurations',params['ensemble'],tech,sv),transparent=True)
-    plt.show()
+    tp.show_in_spyder()
 
 
 def bin_test(params, data2, sv=''):

@@ -1,6 +1,12 @@
+from pathlib import Path
+
+import h5py as h5
 import numpy as np
 import matplotlib.cm as cm
 
+
+# ETMC data are stored in data/traceless_operators/.
+ETMC_ENSEMBLES = ['cA211', 'cB211', 'cC211']
 
 
 def cal_params(args):
@@ -8,6 +14,7 @@ def cal_params(args):
     params = {}
     params['tech'] = args.tech
     params['ensemble'] = args.ensemble
+    etmc = params['ensemble'] in ETMC_ENSEMBLES
 
     params['mommax'] = 1
     params['ns_min'] = 2
@@ -34,7 +41,7 @@ def cal_params(args):
         params['nsrc'] = 1
         params['nder'] = 3
         params['nflow'] = 1
-        params['tsnk_max_3pt'] = {'pion': 8, 'kaon': 8, 'kaon_s': 8}
+        params['tsep_max_3pt'] = {'pion': 8, 'kaon': 8, 'kaon_s': 8}
         params['Z_V^l'] = 6
         params['confs'] = np.arange(1000,2020,20)
         params['confs'] = np.arange(1000,1080,20)
@@ -45,11 +52,11 @@ def cal_params(args):
         params['T'] = 72
         params['spacing'] = 0.10530
         params['nsrc'] = 2
-        params['tsnk_max_3pt'] = {'Sigmac': 23, 'pion': 72, 'kaon': 72, 'kaon_s': 72}
-        params['tsnk_max_4pt'] = {'Sigmac': 28}
+        params['tsep_max_3pt'] = {'Sigmac': 23, 'pion': 72, 'kaon': 72, 'kaon_s': 72}
+        params['tsep_max_4pt'] = {'Sigmac': 28}
         params['dt_list'] = {'Sigmac': [(1,1), (1,2), (2,1), (2,2), (2,3), (3,2), (3,3), (3,4), (4,3), (4,4), (5,5), (6,6), (7,7), (8,8), (9,9)]}
         max_dt = max(max(i, j) for (i, j) in params['dt_list']['Sigmac'])
-        params['tJJ_max'] = {'Sigmac': params['tsnk_max_4pt']['Sigmac'] - 2 * max_dt}
+        params['tJJ_max'] = {'Sigmac': params['tsep_max_4pt']['Sigmac'] - 2 * max_dt}
         params['Z_V^l'] = 0.79676
         params['Z_V^c'] = 1.57353
         exceptional = np.array([])
@@ -104,6 +111,90 @@ def cal_params(args):
         params['spacing'] = 0.05187
         exceptional = np.array([])
         params['confs'] = np.setdiff1d(np.arange(1000,6480,20),exceptional)
+
+    elif params['ensemble'] == 'cA211':
+        params['L'] = 32
+        params['T'] = 64
+        params['spacing'] = 0.0922
+        params['Z_V^l'] = 1
+        params['Z_V^s'] = 1
+        params['tsep_list'] = [24, 28, 32]
+        exceptional = []
+
+    elif params['ensemble'] == 'cB211':
+        params['L'] = 48
+        params['T'] = 96
+        params['spacing'] = 0.0800
+        params['Z_V^l'] = 1
+        params['Z_V^s'] = 1
+        params['tsep_list'] = [28, 32, 36]
+        # Incomplete kaon_s flow data at dt=36.
+        exceptional = [
+            ('cB211b.25.48', 544),
+            ('cB211b.25.48', 568),
+        ]
+
+    elif params['ensemble'] == 'cC211':
+        params['L'] = 48
+        params['T'] = 96
+        params['spacing'] = 0.0684
+        params['Z_V^l'] = 1
+        params['Z_V^s'] = 1
+        params['tsep_list'] = [32, 40, 48]
+        exceptional = []
+
+    elif params['ensemble'] == 'cD211':
+        params['L'] = 96
+        params['T'] = 192
+        params['spacing'] = 0.0573
+        params['Z_V^l'] = 1
+        params['Z_V^s'] = 1
+        params['tsep_list'] = [32, 40, 48]
+        exceptional = []
+
+    if etmc:
+        root = Path('../data/traceless_operators')
+        ensembles = sorted(root.glob('%s*' % params['ensemble']))
+        file_labels = {
+            'pion': 'pion_uins',
+            'kaon': 'kaon_uins',
+            'kaon_s': 'kaon_sins',
+        }
+
+        # The same number in a and b denotes two different configurations.
+        params['confs'] = []
+        for ensemble_dir in ensembles:
+            confs = {}
+            for hadron, file_label in file_labels.items():
+                files = ensemble_dir.glob('*_%s.h5' % file_label)
+                confs[hadron] = {
+                    int(file.name.split('_', 1)[0]) for file in files
+                }
+
+            common_confs = confs['pion'] & confs['kaon'] & confs['kaon_s']
+            for conf in sorted(common_confs):
+                identity = (ensemble_dir.name, conf)
+                if identity in exceptional:
+                    continue
+
+                valid = True
+                for file_label in file_labels.values():
+                    file = ensemble_dir / ('%04d_%s.h5' % (conf, file_label))
+                    with h5.File(file, 'r') as three_file:
+                        file_dt_list = [int(value) for value in three_file.attrs['dt_list']]
+                        if not all(dt in file_dt_list for dt in params['tsep_list']):
+                            valid = False
+                            break
+
+                        source_names = set(three_file['O4/dt%d' % params['tsep_list'][0]].keys())
+                        for dt in params['tsep_list'][1:]:
+                            source_names &= set(three_file['O4/dt%d' % dt].keys())
+                        if not source_names:
+                            valid = False
+                            break
+
+                if valid:
+                    params['confs'].append(identity)
 
     params['N'] = len(params['confs'])
     params['hca'] = 197.3269804 / params['spacing']

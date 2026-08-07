@@ -17,9 +17,12 @@ import pickle
 import inputs
 import setup
 import reading
+import reading_etmc
 import conf_tests
 import preprocess
+import preprocess_etmc
 import plotdata
+import plotdata_etmc
 import fit_two
 import quantities
 
@@ -43,15 +46,17 @@ if __name__ == '__main__':
         class Args:
             ensemble = 'C24P29'
             ensemble = 'test'
+            ensemble = 'cC211'
             tech = 'jackknife'
             plotdata = 1
             two = 0
-            read2 = 'direct'
-            read3 = 'direct'
+            read2 = 'fast'
+            read3 = 'fast'
         args = Args()
     print(args)
 
     # In[]
+    etmc = args.ensemble in inputs.ETMC_ENSEMBLES
     params = inputs.cal_params(args)
     datadir = params['datadir']
 
@@ -61,7 +66,7 @@ if __name__ == '__main__':
     options = {}
     options['two'] = args.two
     options['plotdata'] = args.plotdata
-    options['conf_tests'] = 0
+    options['conf_tests'] = 1
 
     print('N = %d'%(params['N']))
     print('Nb = %d'%(params['Nb']))
@@ -69,14 +74,18 @@ if __name__ == '__main__':
 
     #%%
     # Read the data
-    [data2, data3] = reading.reading(params, args.read2, args.read3)
-    # For cross check
-    if args.read3 != 'no':
-        pdf_dir = '../%s/PDF' % datadir['mydata']
-        os.makedirs(pdf_dir, exist_ok=True)
-        for key in sorted(data3.keys()):
-            if key.startswith(('pion-cov-nder_', 'pion-PDF-n_', 'kaon-cov-nder_', 'kaon-PDF-n_', 'kaon_s-cov-nder_', 'kaon_s-PDF-n_')):
-                np.save('%s/%s.npy' % (pdf_dir, key), data3[key])
+    if etmc:
+        data2, data3, metadata = reading_etmc.reading(params, args.read2, args.read3)
+    else:
+        [data2, data3] = reading.reading(params, args.read2, args.read3)
+
+        # For cross check
+        if args.read3 != 'no':
+            pdf_dir = '../%s/PDF' % datadir['mydata']
+            os.makedirs(pdf_dir, exist_ok=True)
+            for key in sorted(data3.keys()):
+                if key.startswith(('pion-cov-nder_', 'pion-PDF-n_', 'kaon-cov-nder_', 'kaon-PDF-n_', 'kaon_s-cov-nder_', 'kaon_s-PDF-n_')):
+                    np.save('%s/%s.npy' % (pdf_dir, key), data3[key])
 
     #%%
     # Conf test
@@ -90,12 +99,19 @@ if __name__ == '__main__':
     relist = tp.resamplelist(params['Nb'], params) # Need only the shape of the data
     relen = relist.shape[0]
     params['relen'] = relen
-    [data2, data3] = preprocess.preprocess(args, datadir, params, relist, data2, data3)
+
+    if etmc:
+        [data2, data3] = preprocess_etmc.preprocess(params, relist, data2, data3)
+    else:
+        [data2, data3] = preprocess.preprocess(args, datadir, params, relist, data2, data3)
 
     # In[]
     # Plot the original data
     if options['plotdata']:
-        plotdata.plotdata(params, data2, data3, mtype='exp', two=True, three=True, three_pdf=True, label='plain')
+        if etmc:
+            plotdata_etmc.plotdata(params, data2, data3, metadata, two=True, three=True, three_pdf=True, label='plain')
+        else:
+            plotdata.plotdata(params, data2, data3, mtype='exp', two=True, three=True, three_pdf=True, label='plain')
 
 #     # In[]
 #     # One particle fit
