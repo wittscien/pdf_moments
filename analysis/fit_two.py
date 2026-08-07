@@ -9,9 +9,10 @@ import fitting_ranges
 def fit_two(params, data2, mtype, obj):
     # Parameter structure: A0, E0, A1, E1, ...
     tau = params['tau']
+    T = params['T']
     fdata2 = {k:data2[k].real for k in data2.keys()}
 
-    fit_range = fitting_ranges.ranges[params['ensemble']]
+    fit_range = fitting_ranges.ranges_two[params['ensemble']]
     selected = {'n': {}, 'tmin': {}, 'tmax': {}}
     params['tmax'] = {1:{}, 2:{}}
     params['tmin'] = {1:{}, 2:{}}
@@ -22,16 +23,9 @@ def fit_two(params, data2, mtype, obj):
         params['tmin'][1][k] = [2, selected['tmax'][k] - 1]
         params['tmin'][2][k] = [2, selected['tmax'][k] - 3]
 
-    one_name = '%s'%(params['ensemble'])
-    one_tit = r'$Ens=%s$'%(params['ensemble'])
+    two_name = '%s'%(params['ensemble'])
+    two_tit = r'$Ens=%s$'%(params['ensemble'])
     two_dir = '%s'%(params['ensemble'])
-
-    # Write priors to txt
-    Path('priors/%s/'%(two_dir)).mkdir(parents=True, exist_ok=True)
-    prior_txt = open("priors/%s/prior_%s.txt"%(two_dir,one_name), 'w')
-    prior_txt.close()
-
-    T = params['T']
 
     result_para = {}
     result_chi2dof = {}
@@ -77,11 +71,11 @@ def fit_two(params, data2, mtype, obj):
             selected['tmin'][k] = selected_lazy_tmin
 
         # Plot stability
-        tp.plot_stability(k,1,params,selected,result_para[k],result_chi2dof[k],tit=r'%s %s'%(one_tit,inputs.labels(k)),sv='%s_%s'%(one_name,k),figdir='fit_two/%s'%(two_dir))
+        tp.plot_stability(k,1,params,selected,result_para[k],result_chi2dof[k],tit=r'%s %s'%(two_tit,inputs.labels(k)),sv='%s_%s'%(two_name,k),figdir='fit_two/%s'%(two_dir))
 
         # Plot results
         fdata2_plot = {}
         fdata2_plot[k] = np.copy(fdata2[k])
-        tp.plot_result(fdata2_plot,params,selected,result[k],ans[k],tau=tau,mtype=params['mtype'],tit=r'%s %s'%(one_tit,inputs.labels(k)),sv='%s_%s'%(one_name,k),figdir='fit_two/%s'%(two_dir))
+        tp.plot_result(k,fdata2_plot,params,selected,result[k],ans[k],tau=tau,mtype=params['mtype'],tit=r'%s %s'%(two_tit,inputs.labels(k)),sv='%s_%s'%(two_name,k),figdir='fit_two/%s'%(two_dir))
 
     return fdata2, result_para, result_chi2dof, result, ans

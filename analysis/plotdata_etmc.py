@@ -9,7 +9,7 @@ from flow_matching import c_numeric
 
 
 
-def plotdata(params, data2, data3, metadata, two, three, three_pdf, result, label=''):
+def plotdata(params, data2, data3, metadata, two, three, three_pdf, xR, R, result, label=''):
     tech = params['tech']
     relen = params['relen']
 
@@ -42,7 +42,6 @@ def plotdata(params, data2, data3, metadata, two, three, three_pdf, result, labe
         ZVl = params['Z_V^l']
         ZVs = params['Z_V^s']
         len_tsep_list = len(params['tsep_list'])
-        result_use = {'pion': [[0, 0.08559]], 'kaon': [[0, 0.17888]]} if result is None else result
 
         for k in params['key_3pt']:
             if k == 'pion':
@@ -55,9 +54,9 @@ def plotdata(params, data2, data3, metadata, two, three, three_pdf, result, labe
             fig, ax = plt.subplots(1,1)
             for itsep, tsep in enumerate(params['tsep_list']):
                 data_3pt = fdata3['%s-PDF-n_1' % k][tsep][:,0,:] # [tsep][ls, flow, tins]
-                x = np.arange(tsep+1) - tsep / 2
                 R = np.zeros((relen, tsep+1))
                 for ls in range(relen):
+                    result_use = {k_one: {ls: [0, tp.cal_mass(data2[k_one][ls].real,mtype='cosh',tau=params['tau'])[T//2]]}} if result is None else result
                     m_one = result_use[k_one][ls][1]
                     if k == 'pion':
                         data_3pt_tsep = data_3pt[ls] * ZVl * (1 + np.exp(-m_one * (T-2*tsep)))
@@ -67,9 +66,7 @@ def plotdata(params, data2, data3, metadata, two, three, three_pdf, result, labe
                         data_3pt_tsep = - data_3pt[ls] * ZVs * (1 + np.exp(-m_one*(T-2*tsep)))
                     data_2pt_tsep = data_2pt[ls][tsep]
                     R[ls] = data_3pt_tsep / data_2pt_tsep
-                mean = tp.cal_mean(R)
-                err = tp.cal_err(R,tech=params['tech'])
-                ax.errorbar(x=x,y=mean,yerr=err,ls='-',marker='o',color=inputs.clrscm(len_tsep_list,itsep),mec=inputs.clrscm(len_tsep_list,itsep),capsize=2,fillstyle='none')
+                ax.errorbar(x=xR,y=tp.cal_mean(R),yerr=tp.cal_err(R,tech=tech),ls='-',marker='o',color=inputs.clrscm(len_tsep_list,itsep),mec=inputs.clrscm(len_tsep_list,itsep),capsize=2,fillstyle='none')
             ax.set_xlim([-max(params['tsep_list'])//2 ,max(params['tsep_list'])//2])
             ax.set_ylim([0.5, 1.5])
             ax.set_xlabel(r'$t_j - t_{sep}/2$')
@@ -87,32 +84,12 @@ def plotdata(params, data2, data3, metadata, two, three, three_pdf, result, labe
         nflow = len(metadata['tau_list']) - 1
 
         for k in params['key_3pt']:
-            if k == 'pion':
-                k_one = 'pion'
-            elif k in ['kaon', 'kaon_s']:
-                k_one = 'kaon'
             tit = r'$Ens=%s \quad %s$' % (params['ensemble'], k)
             # n is the number of mu
             for n in range(3, 7):
                 for tf in range(nflow + 1):
-                    tf_GeV2 = tf * metadata['flow_dt'] * params['hca'] ** 2
-
                     fig, ax = plt.subplots(1,1)
                     for itsep, tsep in enumerate(params['tsep_list']):
-                        x = np.arange(tsep+1) - tsep / 2
-                        R = np.zeros((relen, tsep+1))
-                        for ls in range(relen):
-                            m_one = result_use[k_one][ls][1]
-
-                            data_3pt_up = fdata3['%s-PDF-n_%d' % (k, n)][tsep][:,tf,:]
-                            data_3pt_down = fdata3['%s-PDF-n_2' % (k)][tsep][:,tf,:] * (- m_one) ** (n - 1)
-                            if tf != 0:
-                                data_3pt_up *= c_numeric(2, tf_GeV2, 2)
-                                data_3pt_down *= c_numeric(n + 1, tf_GeV2, 2)
-
-                            data_3pt_up_tsep = data_3pt_up[ls]
-                            data_3pt_down_tsep = data_3pt_down[ls]
-                            R[ls] = data_3pt_up_tsep / data_3pt_down_tsep
                         mean = tp.cal_mean(R)
                         err = tp.cal_err(R,tech=params['tech'])
                         ax.errorbar(x=x,y=mean,yerr=err,ls='-',marker='o',color=inputs.clrscm(len_tsep_list,itsep),mec=inputs.clrscm(len_tsep_list,itsep),capsize=2,fillstyle='none')

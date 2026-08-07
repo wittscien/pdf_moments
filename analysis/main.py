@@ -24,6 +24,7 @@ import preprocess_etmc
 import plotdata
 import plotdata_etmc
 import fit_two
+import fit_three
 import quantities
 
 #%%
@@ -109,7 +110,8 @@ if __name__ == '__main__':
     # Plot the original data
     if options['plotdata']:
         if etmc:
-            plotdata_etmc.plotdata(params, data2, data3, metadata, two=True, three=True, three_pdf=True, result=None, label='plain')
+            [xR, R] = build_R_pdf.build_R_pdf(params, data3, metadata, result=None)
+            plotdata_etmc.plotdata(params, data2, data3, metadata, two=True, three=True, three_pdf=True, xR=xR, R=R, label='plain')
         else:
             plotdata.plotdata(params, data2, data3, mtype='exp', two=True, three=True, three_pdf=True, label='plain')
 
@@ -120,15 +122,13 @@ if __name__ == '__main__':
         params['lazy_tmin'] = 0
         [fdata2, result_para, result_chi2dof, result, ans] = fit_two.fit_two(params, data2, mtype='cosh', obj='corr')
 
-        dfile = open('../%s/spectra/%s/results_one_%s_%s.pckl'%(datadir['mydata'],params['ensemble'],params['ensemble'],params['tech']),'wb')
-        all_results = [data2, fdata2, result_para, result_chi2dof, result, ans]
-        pickle.dump(all_results,dfile)
-        dfile.close()
+        with open('../%s/spectra/%s/results_two_%s_%s.pckl'%(datadir['mydata'],params['ensemble'],params['ensemble'],params['tech']),'wb') as dfile:
+            pickle.dump([data2, fdata2, result_para, result_chi2dof, result, ans],dfile)
 
     else:
-        dfile = open('../%s/spectra/%s/results_one_%s_%s.pckl'%(datadir['mydata'],params['ensemble'],params['ensemble'],params['tech']),'rb')
-        [data2, fdata2, result_para, result_chi2dof, result, ans] = pickle.load(dfile)
-        dfile.close()
+        with open('../%s/spectra/%s/results_two_%s_%s.pckl'%(datadir['mydata'],params['ensemble'],params['ensemble'],params['tech']),'rb') as dfile:
+            [data2, fdata2, result_para, result_chi2dof, result, ans] = pickle.load(dfile)
+    [xR, R] = build_R_pdf.build_R_pdf(params, data3, metadata, result)
 
     #%%
 #     # Dispersion relation
@@ -136,15 +136,12 @@ if __name__ == '__main__':
 #         params['just_changing_tmin'] = 0
 #         [disfdata, disresult_para, disresult_chi2dof, disresult] = dispersion.dispersion(params, selected, result, sv=str(params['ens']))
 
-#         dfile = open('../%s/spectra/%s/dispersion_%s_%s.pckl'%(datadir['mydata'],params['ensname'],params['ensname'],params['tech']),'wb')
-#         all_results = [disfdata, disresult_para, disresult_chi2dof, disresult]
-#         pickle.dump(all_results,dfile)
-#         dfile.close()
+    #     with open('../%s/spectra/%s/dispersion_%s_%s.pckl'%(datadir['mydata'],params['ensname'],params['ensname'],params['tech']),'wb') as dfile:
+    #         pickle.dump([disfdata, disresult_para, disresult_chi2dof, disresult],dfile)
 
-#     else:
-#         dfile = open('../%s/spectra/%s/dispersion_%s_%s.pckl'%(datadir['mydata'],params['ensname'],params['ensname'],params['tech']),'rb')
-#         [disfdata, disresult_para, disresult_chi2dof, disresult] = pickle.load(dfile)
-#         dfile.close()
+    # else:
+    #     with open('../%s/spectra/%s/dispersion_%s_%s.pckl'%(datadir['mydata'],params['ensname'],params['ensname'],params['tech']),'rb') as dfile:
+    #         [disfdata, disresult_para, disresult_chi2dof, disresult] = pickle.load(dfile)
 
     #%%
     # From here assume using ETMC data and do not write explicitly "if etmc" anymore.
@@ -152,6 +149,19 @@ if __name__ == '__main__':
     if options['plotdata']:
         plotdata_etmc.plotdata(params, data2, data3, metadata, two=False, three=True, three_pdf=False, result=result, label='mass')
 
+    #%%
+    # 3pt fit
+    if options['three']:
+        params['just_changing_tins'] = 0
+        params['lazy_tins'] = 0
+        [fdata2, result_para, result_chi2dof, result, ans] = fit_three.fit_three(params, xR, R, metadata, result)
+
+        with open('../%s/spectra/%s/results_one_%s_%s.pckl'%(datadir['mydata'],params['ensemble'],params['ensemble'],params['tech']),'wb') as dfile:
+            pickle.dump([data2, fdata2, result_para, result_chi2dof, result, ans],dfile)
+
+    else:
+        with open('../%s/spectra/%s/results_one_%s_%s.pckl'%(datadir['mydata'],params['ensemble'],params['ensemble'],params['tech']),'rb') as dfile:
+            [data2, fdata2, result_para, result_chi2dof, result, ans] = pickle.load(dfile)
 
     #%%
 #     # Some physical quantities
