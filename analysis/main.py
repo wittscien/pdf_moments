@@ -113,22 +113,22 @@ if __name__ == '__main__':
         else:
             plotdata.plotdata(params, data2, data3, mtype='exp', two=True, three=True, three_pdf=True, label='plain')
 
-#     # In[]
-#     # One particle fit
-#     if options['one']:
-#         params['just_changing_tmin'] = 0
-#         params['lazy_tmin'] = 0
-#         [fdata2, result_para, result_chi2dof, result, ans, energy_non_labels] = fit_one.fit_one(params, selected, data2, mtype='cosh', obj='corr')
+    # In[]
+    # One particle fit
+    if options['two']:
+        params['just_changing_tmin'] = 0
+        params['lazy_tmin'] = 0
+        [fdata2, result_para, result_chi2dof, result, ans, energy_non_labels] = fit_two.fit_two(params, data2, mtype='cosh', obj='corr')
 
-#         dfile = open('../%s/spectra/%s/results_one_%s_%s.pckl'%(datadir['mydata'],params['ensname'],params['ensname'],params['tech']),'wb')
-#         all_results = [data2, fdata2, result_para, result_chi2dof, result, ans, energy_non_labels]
-#         pickle.dump(all_results,dfile)
-#         dfile.close()
+        dfile = open('../%s/spectra/%s/results_one_%s_%s.pckl'%(datadir['mydata'],params['ensname'],params['ensname'],params['tech']),'wb')
+        all_results = [data2, fdata2, result_para, result_chi2dof, result, ans, energy_non_labels]
+        pickle.dump(all_results,dfile)
+        dfile.close()
 
-#     else:
-#         dfile = open('../%s/spectra/%s/results_one_%s_%s.pckl'%(datadir['mydata'],params['ensname'],params['ensname'],params['tech']),'rb')
-#         [data2, fdata2, result_para, result_chi2dof, result, ans, energy_non_labels] = pickle.load(dfile)
-#         dfile.close()
+    else:
+        dfile = open('../%s/spectra/%s/results_one_%s_%s.pckl'%(datadir['mydata'],params['ensname'],params['ensname'],params['tech']),'rb')
+        [data2, fdata2, result_para, result_chi2dof, result, ans, energy_non_labels] = pickle.load(dfile)
+        dfile.close()
 
 #     # In[]
 #     # Dispersion relation
