@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from multiprocessing import Pool
 #import warnings
 import struct
-from scipy.optimize import least_squares
+from scipy.optimize import least_squares, OptimizeResult
 from scipy.optimize import fsolve
 from scipy import linalg
 import pickle
@@ -1083,7 +1083,7 @@ def plot_stability_3pt(k,paramso,selectedo,result,result_chi,tit='',sv='',figdir
     plt.tight_layout()
     Path('../%s/%s/'%(params['figures'],figdir)).mkdir(parents=True, exist_ok=True)
     plt.savefig('../%s/%s/stability_%s.pdf'%(params['figures'],figdir,sv),transparent=True)
-    show_in_spyder()
+    # show_in_spyder()
 
 
 def plot_result_3pt(k,data,paramso,selectedo,result,tit='',sv='',figdir=''):
@@ -1138,7 +1138,7 @@ def plot_result_3pt(k,data,paramso,selectedo,result,tit='',sv='',figdir=''):
     plt.tight_layout()
     Path('../%s/%s/'%(params['figures'],figdir)).mkdir(parents=True, exist_ok=True)
     plt.savefig('../%s/%s/result_%s.pdf'%(params['figures'],figdir,sv),transparent=True)
-    show_in_spyder()
+    # show_in_spyder()
 
 
 def chi_3pt(para,data,Linv,tins,nstates,params,mtype):
@@ -1207,8 +1207,31 @@ def fitting_3pt(p,paramso,data,mtype,selectedo,correlated=True):
                         time = slice(middle-tins,middle+tins+1,tau)
                         Linv = {}
                         Linv[k] = np.linalg.inv(np.linalg.cholesky(cov[k][time,time]))
-                        with Pool(processes = os.cpu_count()) as pool:
-                            pool_result = pool.starmap(mpfitting_3pt, [(ls, params, mtype, k, data, prior, Linv, tins, n) for ls in range(relen)])
+                        if mtype == 'const':
+                            # For R(t)=C, minimize ||L^{-1}(y-C)||^2 for
+                            # each resample.  This is the correlated GLS
+                            # solution and replaces the 1-parameter optimizer.
+                            sample_data = np.asarray(data[k][:, time])
+                            ones = np.ones(sample_data.shape[1])
+                            whitened_data = sample_data @ Linv[k].T
+                            whitened_ones = ones @ Linv[k].T
+                            denominator = np.dot(whitened_ones, whitened_ones)
+                            fit_values = np.dot(whitened_data, whitened_ones) / denominator
+                            fit_residuals = (sample_data - fit_values[:, None]) @ Linv[k].T
+                            pool_result = []
+                            for ls in range(relen):
+                                fit = OptimizeResult()
+                                fit.x = np.array([fit_values[ls]])
+                                fit.fun = fit_residuals[ls]
+                                fit.cost = 0.5 * np.dot(fit.fun, fit.fun)
+                                fit.nfev = 0
+                                fit.success = True
+                                fit.status = 1
+                                fit.message = 'analytic correlated GLS fit'
+                                pool_result.append(fit)
+                        else:
+                            with Pool(processes = os.cpu_count()) as pool:
+                                pool_result = pool.starmap(mpfitting_3pt, [(ls, params, mtype, k, data, prior, Linv, tins, n) for ls in range(relen)])
                         for ls in range(relen):
                             result[n][tins][ls] = pool_result[ls]
         # Saving purly for just changing tins
