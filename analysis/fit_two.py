@@ -76,6 +76,6 @@ def fit_two(params, data2, mtype, obj):
         # Plot results
         fdata2_plot = {}
         fdata2_plot[k] = np.copy(fdata2[k])
-        tp.plot_result(k,fdata2_plot,params,selected,result[k],ans[k],tau=tau,mtype=params['mtype'],tit=r'%s %s'%(two_tit,inputs.labels(k)),sv='%s_%s'%(two_name,k),figdir='fit_two/%s'%(two_dir))
+        tp.plot_result(fdata2_plot,params,selected,result[k],ans[k],tau=tau,mtype=params['mtype'],tit=r'%s %s'%(two_tit,inputs.labels(k)),sv='%s_%s'%(two_name,k),figdir='fit_two/%s'%(two_dir))
 
     return fdata2, result_para, result_chi2dof, result, ans

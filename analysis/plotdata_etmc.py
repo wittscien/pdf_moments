@@ -66,7 +66,7 @@ def plotdata(params, data2, data3, metadata, two, three, three_pdf, xR, R, resul
                         data_3pt_tsep = - data_3pt[ls] * ZVs * (1 + np.exp(-m_one*(T-2*tsep)))
                     data_2pt_tsep = data_2pt[ls][tsep]
                     R[ls] = data_3pt_tsep / data_2pt_tsep
-                ax.errorbar(x=xR,y=tp.cal_mean(R),yerr=tp.cal_err(R,tech=tech),ls='-',marker='o',color=inputs.clrscm(len_tsep_list,itsep),mec=inputs.clrscm(len_tsep_list,itsep),capsize=2,fillstyle='none')
+                ax.errorbar(x=xR[tsep],y=tp.cal_mean(R),yerr=tp.cal_err(R,tech=tech),ls='-',marker='o',color=inputs.clrscm(len_tsep_list,itsep),mec=inputs.clrscm(len_tsep_list,itsep),capsize=2,fillstyle='none')
             ax.set_xlim([-max(params['tsep_list'])//2 ,max(params['tsep_list'])//2])
             ax.set_ylim([0.5, 1.5])
             ax.set_xlabel(r'$t_j - t_{sep}/2$')
@@ -90,9 +90,10 @@ def plotdata(params, data2, data3, metadata, two, three, three_pdf, xR, R, resul
                 for tf in range(nflow + 1):
                     fig, ax = plt.subplots(1,1)
                     for itsep, tsep in enumerate(params['tsep_list']):
-                        mean = tp.cal_mean(R)
-                        err = tp.cal_err(R,tech=params['tech'])
-                        ax.errorbar(x=x,y=mean,yerr=err,ls='-',marker='o',color=inputs.clrscm(len_tsep_list,itsep),mec=inputs.clrscm(len_tsep_list,itsep),capsize=2,fillstyle='none')
+                        R_now = R[k][n][tf][tsep]
+                        mean = tp.cal_mean(R_now)
+                        err = tp.cal_err(R_now,tech=params['tech'])
+                        ax.errorbar(x=xR[tsep],y=mean,yerr=err,ls='-',marker='o',color=inputs.clrscm(len_tsep_list,itsep),mec=inputs.clrscm(len_tsep_list,itsep),capsize=2,fillstyle='none')
                     ax.set_xlim([-max(params['tsep_list'])//2 ,max(params['tsep_list'])//2])
                     # ax.set_ylim([-0.03, 0.03])
                     ax.set_xlabel(r'$t_j - t_{sep}/2$')

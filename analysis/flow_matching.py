@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 
 # Set precision if needed
-mp.mp.dps = 50
+mp.mp.dps = 15
 
 
 def harmonic_number(n):

@@ -1,4 +1,5 @@
 from pathlib import Path
+import pickle
 
 import h5py as h5
 import numpy as np
@@ -15,6 +16,8 @@ def cal_params(args):
     params['tech'] = args.tech
     params['ensemble'] = args.ensemble
     etmc = params['ensemble'] in ETMC_ENSEMBLES
+    read2 = args.read2
+    read3 = args.read3
 
     params['mommax'] = 1
     params['ns_min'] = 1
@@ -153,48 +156,54 @@ def cal_params(args):
         exceptional = []
 
     if etmc:
-        root = Path('../data/traceless_operators')
-        ensembles = sorted(root.glob('%s*' % params['ensemble']))
-        file_labels = {
-            'pion': 'pion_uins',
-            'kaon': 'kaon_uins',
-            'kaon_s': 'kaon_sins',
-        }
+        if read2 != 'direct' and read3 != 'direct':
+            metadata_file = Path('../%s/corr/%s/metadata_%s.pckl' % (
+                params['datadir']['mydata'], params['ensemble'], params['ensemble']))
+            with metadata_file.open('rb') as metadata_stream:
+                params['confs'] = pickle.load(metadata_stream)['confs']
+        else:
+            root = Path('../data/traceless_operators')
+            ensembles = sorted(root.glob('%s*' % params['ensemble']))
+            file_labels = {
+                'pion': 'pion_uins',
+                'kaon': 'kaon_uins',
+                'kaon_s': 'kaon_sins',
+            }
 
-        # The same number in a and b denotes two different configurations.
-        params['confs'] = []
-        for ensemble_dir in ensembles:
-            confs = {}
-            for hadron, file_label in file_labels.items():
-                files = ensemble_dir.glob('*_%s.h5' % file_label)
-                confs[hadron] = {
-                    int(file.name.split('_', 1)[0]) for file in files
-                }
+            # The same number in a and b denotes two different configurations.
+            params['confs'] = []
+            for ensemble_dir in ensembles:
+                confs = {}
+                for hadron, file_label in file_labels.items():
+                    files = ensemble_dir.glob('*_%s.h5' % file_label)
+                    confs[hadron] = {
+                        int(file.name.split('_', 1)[0]) for file in files
+                    }
 
-            common_confs = confs['pion'] & confs['kaon'] & confs['kaon_s']
-            for conf in sorted(common_confs):
-                identity = (ensemble_dir.name, conf)
-                if identity in exceptional:
-                    continue
+                common_confs = confs['pion'] & confs['kaon'] & confs['kaon_s']
+                for conf in sorted(common_confs):
+                    identity = (ensemble_dir.name, conf)
+                    if identity in exceptional:
+                        continue
 
-                valid = True
-                for file_label in file_labels.values():
-                    file = ensemble_dir / ('%04d_%s.h5' % (conf, file_label))
-                    with h5.File(file, 'r') as three_file:
-                        file_dt_list = [int(value) for value in three_file.attrs['dt_list']]
-                        if not all(dt in file_dt_list for dt in params['tsep_list']):
-                            valid = False
-                            break
+                    valid = True
+                    for file_label in file_labels.values():
+                        file = ensemble_dir / ('%04d_%s.h5' % (conf, file_label))
+                        with h5.File(file, 'r') as three_file:
+                            file_dt_list = [int(value) for value in three_file.attrs['dt_list']]
+                            if not all(dt in file_dt_list for dt in params['tsep_list']):
+                                valid = False
+                                break
 
-                        source_names = set(three_file['O4/dt%d' % params['tsep_list'][0]].keys())
-                        for dt in params['tsep_list'][1:]:
-                            source_names &= set(three_file['O4/dt%d' % dt].keys())
-                        if not source_names:
-                            valid = False
-                            break
+                            source_names = set(three_file['O4/dt%d' % params['tsep_list'][0]].keys())
+                            for dt in params['tsep_list'][1:]:
+                                source_names &= set(three_file['O4/dt%d' % dt].keys())
+                            if not source_names:
+                                valid = False
+                                break
 
-                if valid:
-                    params['confs'].append(identity)
+                    if valid:
+                        params['confs'].append(identity)
 
     params['N'] = len(params['confs'])
     params['hca'] = 197.3269804 / params['spacing']

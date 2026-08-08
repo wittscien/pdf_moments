@@ -699,7 +699,9 @@ def plot_result(data,paramso,selectedo,result,ans,tau=1,mtype='exp',cylim='no',t
         meff_mean[k] = cal_mean(meff[k])
         meff_err[k] = cal_err(meff[k],params['tech'])
         # axes[0].errorbar(x=x,y=data_mean[k],yerr=data_err[k],ls='None',marker='o',color=inputs.clrs[i],mec=inputs.clrs[i],capsize=2,fillstyle='none',label=inputs.labels(k))
-        axes.errorbar(x=x,y=meff_mean[k],yerr=meff_err[k],ls='None',marker='o',color=inputs.clrs[i],mec=inputs.clrs[i],capsize=2,fillstyle='none')
+        fit_mask = (x >= selected['tmin']) & (x <= selected['tmax'])
+        axes.errorbar(x=x[~fit_mask],y=meff_mean[k][~fit_mask],yerr=meff_err[k][~fit_mask],ls='None',marker='o',color=inputs.clrs[i],mec=inputs.clrs[i],capsize=2,fillstyle='none',alpha=0.1)
+        axes.errorbar(x=x[fit_mask],y=meff_mean[k][fit_mask],yerr=meff_err[k][fit_mask],ls='None',marker='o',color=inputs.clrs[i],mec=inputs.clrs[i],capsize=2,fillstyle='none')
 
         # Reconstructed
         xx = np.arange(selected['tmin'],selected['tmax'],dt)
@@ -1045,79 +1047,38 @@ def fitting(p,paramso,data,mtype,selectedo,correlated=True):
 
 
 def plot_stability_3pt(k,paramso,selectedo,result,result_chi,tit='',sv='',figdir=''):
-    # Should use bootstraped result
     tau = paramso['tau']
     fig, axes = plt.subplots(2,1,sharex=True,gridspec_kw=dict(height_ratios=[4,1],hspace=0))
     fig.set_size_inches(6.4, 4)
     params = dict(paramso)
-    selected = dict(selectedo)
-    selected['tins'] = selectedo['tins'][k]
-    selected['n'] = selectedo['n'][k]
-    ylimup = 0
-    ylimdown = 0
-    tins00 = 1000
-    tins11 = -1
-    for n in [selected['n']]:
-        tins0 = params['tins'][n][k][0]
-        tins1 = params['tins'][n][k][1]
-        tins00 = min(tins00, tins0)
-        tins11 = max(tins11, tins1)
-        x = np.arange(tins0,tins1+1,tau)
-        E0_mean = np.zeros_like(x,dtype=float)
-        E0_err = np.zeros_like(x,dtype=float)
-        chi2_dof = np.zeros_like(x,dtype=float)
-        for i in range(len(x)):
-            E0_mean[i] = result[n][i*tau+tins0]['mean'][0]
-            E0_err[i] = result[n][i*tau+tins0]['err'][0]
-        if n == selected['n']:
-            selected_time = (selected['tins']-tins0) // tau
-            E0_err_selected_time = E0_err[selected_time]
-            ylimup = E0_mean[selected_time] + E0_err[selected_time] * 8
-            ylimdown = E0_mean[selected_time] - E0_err[selected_time] * 3
-
-    for n in [selected['n']]:
-        for itsep, tsep in enumerate(params['tsep_list']):
-            tins0 = params['tins'][n][k][0]
-            tins1 = params['tins'][n][k][1]
-            tins00 = min(tins00, tins0)
-            tins11 = max(tins11, tins1)
-            x = np.arange(tins0,tins1+1,tau)
-            E0_mean = np.zeros_like(x,dtype=float)
-            E0_err = np.zeros_like(x,dtype=float)
-            chi2_dof = np.zeros_like(x,dtype=float)
-            for i in range(len(x)):
-                E0_mean[i] = result[n][i*tau+tins0]['mean'][0]
-                E0_err[i] = result[n][i*tau+tins0]['err'][0]
-            mask_large = E0_err > E0_err_selected_time * 3
-            mask_normal = ~mask_large
-            axes[0].errorbar(x=x[mask_normal]+0.1*(n-1),y=E0_mean[mask_normal],yerr=E0_err[mask_normal],mfc='none',color=inputs.clrs[n],marker=inputs.mrkr[n],alpha=inputs.alphas[n],linestyle='None',label=r'$n_s = %d$'%n,capsize=2)
-            axes[0].errorbar(x=x[mask_large]+0.1*(n-1),y=E0_mean[mask_large],yerr=E0_err[mask_large],mfc='none',color=inputs.clrs[n],marker=inputs.mrkr[n],linestyle='None',capsize=2,alpha=0.1)
-            # chi2 plot
-            for i in range(len(x)):
-                chi2_dof[i] = result_chi[n][i*tau+tins0]
-            axes[1].scatter(x=x+0.1*(n-1),y=chi2_dof,facecolor='w',edgecolor=inputs.clrs[n],marker=inputs.mrkr[n])
-            if n == selected['n']:
-                selected_time = (selected['tins']-tins0) // tau
-                axes[0].scatter(selected['tins']+0.1*(n-1),E0_mean[selected_time],color='k',marker=inputs.mrkr[n])
-                axes[0].fill_between(np.array([0,params['T']/2+1]),E0_mean[selected_time]-E0_err[selected_time],E0_mean[selected_time]+E0_err[selected_time],color='y',alpha=0.2)
-                '''if (n > 1):
-                    axes[0].scatter(selected['tins']+0.1*(n-1),E1_mean[selected_time],color='k',marker=inputs.mrkr[n])
-                    axes[0].fill_between(np.array([0,tins1+1]),E1_mean[selected_time]-E1_err[selected_time],E1_mean[selected_time]+E1_err[selected_time],color='y',alpha=0.2)'''
-                axes[1].scatter(selected['tins']+0.1*(n-1),chi2_dof[selected_time],color='k',marker=inputs.mrkr[n])
-
-    # E plot
-    axes[0].set_ylabel(r'$E_n$')
-    axes[0].axis([tins00-1,tins11+1,ylimdown,ylimup])
-    # axes[0].set_xticks(np.arange(tins00-1,tins11+1))
-    axes[0].tick_params(axis='x',bottom=True,direction='inout')
-    axes[0].legend(ncol=params['ns_max'],columnspacing=0.5,loc=1)
+    n = selectedo['n'][k]
+    tins = selectedo['tins'][k]
+    tins0 = min(min(result[tsep][n]) for tsep in params['tsep_list'])
+    tins1 = max(max(result[tsep][n]) for tsep in params['tsep_list'])
+    selected_low = []
+    selected_up = []
+    for itsep, tsep in enumerate(params['tsep_list']):
+        x = np.array(sorted(result[tsep][n]))
+        mean = np.array([result[tsep][n][t]['mean'][0] for t in x])
+        err = np.array([result[tsep][n][t]['err'][0] for t in x])
+        chi2 = np.array([result_chi[tsep][n][t] for t in x])
+        selected_time = np.where(x == tins)[0][0]
+        selected_low.append(mean[selected_time] - 3 * err[selected_time])
+        selected_up.append(mean[selected_time] + 8 * err[selected_time])
+        color = inputs.clrscm(len(params['tsep_list']),itsep)
+        axes[0].errorbar(x=x+0.1*itsep,y=mean,yerr=err,mfc='none',color=color,marker='o',linestyle='None',label=r'$t_{sep} = %d$'%tsep,capsize=2)
+        axes[1].scatter(x=x+0.1*itsep,y=chi2,facecolor='w',edgecolor=color,marker='o')
+        axes[0].scatter(tins+0.1*itsep,mean[selected_time],color='k',marker='o')
+        axes[1].scatter(tins+0.1*itsep,chi2[selected_time],color='k',marker='o')
+    axes[0].set_ylabel(r'$C$')
+    axes[0].set_ylim([min(selected_low),max(selected_up)])
+    axes[0].set_xlim([tins0-1,tins1+1])
+    axes[0].legend(ncol=len(params['tsep_list']),columnspacing=0.5,loc=1)
     axes[0].set_title(tit)
-    # chi2 plot
-    axes[1].hlines(1,0,tins11+1,linestyle=':',alpha=0.3,color='k')
-    axes[1].axis([tins00-1,tins11+1,-0.1,2])
+    axes[1].hlines(1,tins0-1,tins1+1,linestyle=':',alpha=0.3,color='k')
+    axes[1].set_ylim([-0.1,2])
     axes[1].set_ylabel(r'$\chi^2/\mathrm{d.o.f.}$')
-    axes[1].tick_params(axis='x',direction='in')
-    axes[1].set_xlabel(r'$t_{\mathrm{min}}$')
+    axes[1].set_xlabel(r'$t_{\mathrm{ins}}$')
 
     plt.tight_layout()
     Path('../%s/%s/'%(params['figures'],figdir)).mkdir(parents=True, exist_ok=True)
@@ -1125,46 +1086,55 @@ def plot_stability_3pt(k,paramso,selectedo,result,result_chi,tit='',sv='',figdir
     show_in_spyder()
 
 
-def plot_result(k,data,paramso,selectedo,result,tau=1,mtype='exp',cylim='no',tit='',sv='',figdir=''):
-    fig, axes = plt.subplots(1,1)
-    fig.set_size_inches(6.4, 4)
+def plot_result_3pt(k,data,paramso,selectedo,result,tit='',sv='',figdir=''):
+    fig, axes = plt.subplots(1,2,sharey=True,gridspec_kw={'width_ratios':[5,0.6],'wspace':0.03})
+    fig.set_size_inches(7.2, 4)
+    ax = axes[0]
+    ax_tsep = axes[1]
     relen = paramso['relen']
-    tech = params['tech']
-    data_mean = {}
-    data_err = {}
-    meff = {}
-    meff_mean = {}
-    meff_err = {}
-    dt = 0.01
     params = dict(paramso)
+    tech = params['tech']
     selected = dict(selectedo)
     selected['tins'] = selectedo['tins'][k]
     selected['n'] = selectedo['n'][k]
+    moment = params['moment']
+    dt = 0.01
+    ymin = []
+    ymax = []
+    xlim = [-max(params['tsep_list']) // 2 - 1,max(params['tsep_list']) // 2 + 1]
     for itsep, tsep in enumerate(params['tsep_list']):
-        # Data
         x = np.arange(tsep+1) - tsep // 2
-        axes.errorbar(x=x,y=cal_mean(data[k]),yerr=cal_err(data[k],tech),ls='None',marker='o',color=inputs.clrs[i],mec=inputs.clrs[i],capsize=2,fillstyle='none')
-        # Reconstructed
-        xx = np.arange(-tsep // 2, tsep, dt)
+        color = inputs.clrscm(len(params['tsep_list']),itsep)
+        data_mean = cal_mean(data[tsep])
+        data_err = cal_err(data[tsep],tech)
+        fit_mask = np.abs(x) <= selected['tins']
+        ax.errorbar(x=x[~fit_mask],y=data_mean[~fit_mask],yerr=data_err[~fit_mask],ls='None',marker='o',color=color,mec=color,capsize=2,fillstyle='none',alpha=0.1)
+        ax.errorbar(x=x[fit_mask],y=data_mean[fit_mask],yerr=data_err[fit_mask],ls='None',marker='o',color=color,mec=color,capsize=2,fillstyle='none',label=r'$t_{sep} = %d$'%tsep)
+        xx = np.arange(xlim[0],xlim[1] + dt,dt)
         recon_matrix = np.zeros([relen,len(xx)])
         for ls in range(relen):
-            result_para = result[ls]
-            recon_matrix[ls] = fit_function(xx,result_para,selected['n'],params,mtype)
+            recon_matrix[ls] = fit_function(xx,result[tsep][ls],moment,params,params['mtype'])
         recon_mean = cal_mean(recon_matrix)
         recon_err = cal_err(recon_matrix,tech)
-
-        xx = xx[:-1]
-        recon_mean = recon_mean[:-1]
-        recon_err = recon_err[:-1]
-        axes.fill_between(xx,recon_mean-recon_err,recon_mean+recon_err,color=inputs.clrs[itsep],alpha=0.3,edgecolor='none')
-
-        # Result value
-        axes.fill_between(np.array([-tsep//2,tsep//2]),cal_mean(result)[1]-cal_err(result,tech)[1],cal_mean(result)[1]+cal_err(result,tech)[1],color='gray',alpha=0.4,edgecolor='none')
-    axes.set_title(tit)
-    axes.set_xlim([-tsep//2-1,tsep//2+1])
-    axes.set_ylim([cal_mean(result)[1]-cal_err(result,tech)[1]*3,cal_mean(result)[1]+cal_err(result,tech)[1]*10])
-    axes.set_xlabel(r'$t_j - t_{sep}/2$')
-    axes.set_ylabel(r'$\langle x^%d \rangle / \langle x \rangle$' % (n - 1))
+        fit_curve = np.abs(xx) <= selected['tins']
+        ax.fill_between(xx,recon_mean-recon_err,recon_mean+recon_err,color=color,alpha=0.1,edgecolor='none')
+        ax.fill_between(xx[fit_curve],recon_mean[fit_curve]-recon_err[fit_curve],recon_mean[fit_curve]+recon_err[fit_curve],color=color,alpha=0.3,edgecolor='none')
+        fit_value = np.array([np.ravel(result[tsep][ls])[0] for ls in range(relen)])
+        fit_mean = cal_mean(fit_value)
+        fit_err = cal_err(fit_value,tech)
+        ymin.append(fit_mean-fit_err*10)
+        ymax.append(fit_mean+fit_err*10)
+        ax_tsep.errorbar(tsep,fit_mean,yerr=fit_err,ls='None',marker='o',color=color,mec=color,capsize=2,fillstyle='none')
+    ax.set_ylim([min(ymin),max(ymax)])
+    ax.set_title(tit)
+    ax.set_xlim(xlim)
+    ax.legend(ncol=len(params['tsep_list']),columnspacing=0.5,loc=1)
+    ax.set_xlabel(r'$t_j - t_{sep}/2$')
+    ax.set_ylabel(r'$\langle x^%d \rangle / \langle x \rangle$' % (moment - 1))
+    ax_tsep.set_xlabel(r'$t_{sep}$')
+    ax_tsep.set_xticks(params['tsep_list'])
+    ax_tsep.set_xlim([min(params['tsep_list'])-2,max(params['tsep_list'])+2])
+    ax_tsep.tick_params(axis='x',labelrotation=0)
     plt.tight_layout()
     Path('../%s/%s/'%(params['figures'],figdir)).mkdir(parents=True, exist_ok=True)
     plt.savefig('../%s/%s/result_%s.pdf'%(params['figures'],figdir,sv),transparent=True)
@@ -1175,8 +1145,7 @@ def chi_3pt(para,data,Linv,tins,nstates,params,mtype):
     tau = params['tau']
     chi_now = np.array([])
     for j,k in enumerate(data.keys()):
-        x = np.arange(len(data-1)//2-tins,len(data-1)//2+tins+1,tau)
-        f = 0
+        x = np.arange(len(data[k])//2-tins,len(data[k])//2+tins+1,tau)
         f = fit_function(x,para,nstates,params,mtype)
         row = (data[k][x] - f)
         chi_now = np.concatenate((chi_now,np.dot(Linv[k],row)))
@@ -1186,8 +1155,7 @@ def chi_3pt(para,data,Linv,tins,nstates,params,mtype):
 def mpfitting_3pt(ls, params, mtype, k, data, prior, Linv, tins, n):
     redata = {}
     redata[k] = data[k][ls]
-    if n == 1:
-        fit = least_squares(chi,prior,args=(redata,Linv,tins,n,params,mtype))
+    fit = least_squares(chi_3pt,prior,args=(redata,Linv,tins,n,params,mtype))
     return fit
 
 
@@ -1200,7 +1168,6 @@ def fitting_3pt(p,paramso,data,mtype,selectedo,correlated=True):
     relen = paramso['relen']
     tau = paramso['tau']
     result = {}
-    result_para = {}
     result_chi2dof = {}
     params = dict(paramso)
     selected = dict(selectedo)
@@ -1211,11 +1178,9 @@ def fitting_3pt(p,paramso,data,mtype,selectedo,correlated=True):
 
     for n in [selected['n']]:
         result[n] = {}
-        result_para[n] = {}
         result_chi2dof[n] = {}
-        for tins in range(params['tins'][n][k][0],params['tins'][n][k][1]+1):
+        for tins in range(params['tins'][n][k][0],params['tins'][n][k][1]+1,tau):
             result[n][tins] = {}
-            result_para[n][tins] = {}
             result_chi2dof[n][tins] = {}
 
     if not paramso['just_changing_tins']:
@@ -1233,40 +1198,41 @@ def fitting_3pt(p,paramso,data,mtype,selectedo,correlated=True):
             prior = gen_prior(p, n, mtype)
             for i,k in enumerate(data.keys()):
                 for tins in range(params['tins'][n][k][0],params['tins'][n][k][1]+1,tau):
-                    # For tins = 0, no fit, just take the middle point
                     if tins == 0:
+                        middle = len(data[k][0]) // 2
                         for ls in range(relen):
-                            result[n][tins][ls] = data[ls,-1]
+                            result[n][tins][ls] = np.array([data[k][ls,middle]])
                     else:
+                        middle = len(data[k][0]) // 2
+                        time = slice(middle-tins,middle+tins+1,tau)
                         Linv = {}
-                        Linv[k] = np.linalg.inv(np.linalg.cholesky(cov[k][len(data-1)//2-tins:len(data-1)//2+tins+1:tau,len(data-1)//2-tins:len(data-1)//2+tins+1:tau]))
-                        # Resample fit
+                        Linv[k] = np.linalg.inv(np.linalg.cholesky(cov[k][time,time]))
                         with Pool(processes = os.cpu_count()) as pool:
                             pool_result = pool.starmap(mpfitting_3pt, [(ls, params, mtype, k, data, prior, Linv, tins, n) for ls in range(relen)])
                         for ls in range(relen):
                             result[n][tins][ls] = pool_result[ls]
         # Saving purly for just changing tins
-        dfile = open('../%s/spectra_full/%s/full_results_3pt_%s_%s_%s.pckl'%(params['datadir']['mydata'],params['ensemble'],params['ensemble'],k,params['tech']),'wb')
+        dfile = open('../%s/spectra_full/%s/full_results_3pt_%s_%s_n%d_tf%d_tsep%d_%s.pckl'%(params['datadir']['mydata'],params['ensemble'],params['ensemble'],k,n,params['tf'],params['tsep'],params['tech']),'wb')
         pickle.dump(result,dfile)
         dfile.close()
     else:
-        dfile = open('../%s/spectra_full/%s/full_results_3pt_%s_%s_%s.pckl'%(params['datadir']['mydata'],params['ensemble'],params['ensemble'],k,params['tech']),'rb')
+        print('    reading cached 3pt fits: n=%d, tf=%d, tsep=%d' % (n,params['tf'],params['tsep']), flush=True)
+        dfile = open('../%s/spectra_full/%s/full_results_3pt_%s_%s_n%d_tf%d_tsep%d_%s.pckl'%(params['datadir']['mydata'],params['ensemble'],params['ensemble'],k,n,params['tf'],params['tsep'],params['tech']),'rb')
         result = pickle.load(dfile)
         dfile.close()
 
-    # Bootstrap the fitting results
     for n in [selected['n']]:
-        params['nstates'] = n
         prior = gen_prior(p, n, mtype)
-        for i,k in enumerate(data.keys()):
-            for tins in range(params['tins'][n][k][0],params['tins'][n][k][1]+1,tau):
-                para_matrix = np.zeros([relen,len(prior)])
-                for ls in range(relen):
-                    fit = result[n][tins][ls]
-                    para_matrix[ls]=fit.x
-                result_para[n][tins]['mean'] = cal_mean(para_matrix)
-                result_para[n][tins]['err'] = cal_err(para_matrix, tech=params['tech'])
+        for tins in result[n]:
+            if tins == 0:
+                result_chi2dof[n][tins] = 0
+            else:
                 result_chi2dof[n][tins] = np.sum(result[n][tins][0].fun**2)/(2*tins+1-len(prior))
+        if 'stability' in params:
+            params['stability'][k] = {n: {}}
+            for tins in result[n]:
+                para_matrix = np.array([result[n][tins][ls] if tins == 0 else result[n][tins][ls].x for ls in range(relen)])
+                params['stability'][k][n][tins] = {'mean': cal_mean(para_matrix), 'err': cal_err(para_matrix,tech=params['tech'])}
 
     # Set a lazy tins selection
     selected_lazy_tins = -1
@@ -1275,12 +1241,14 @@ def fitting_3pt(p,paramso,data,mtype,selectedo,correlated=True):
         chi2_score = 10000
         has_good_fit = False
         for tins in range(params['tins'][n][k][0],params['tins'][n][k][1]+1,tau):
-            err = result_para[n][tins]['err'][0]
+            para_matrix = np.array([result[n][tins][ls] if tins == 0 else result[n][tins][ls].x for ls in range(relen)])
+            err = cal_err(para_matrix,tech=params['tech'])[0]
             if err < 0.005:
                 has_good_fit = True
                 break
         for tins in range(params['tins'][n][k][0],params['tins'][n][k][1]+1,tau):
-            err = result_para[n][tins]['err'][0]
+            para_matrix = np.array([result[n][tins][ls] if tins == 0 else result[n][tins][ls].x for ls in range(relen)])
+            err = cal_err(para_matrix,tech=params['tech'])[0]
             if err >= 0.005 and has_good_fit:
                 continue
             chi2dof = result_chi2dof[n][tins]
@@ -1290,9 +1258,8 @@ def fitting_3pt(p,paramso,data,mtype,selectedo,correlated=True):
                 selected_lazy_tins = tins
 
     selected_use_tins = selected_lazy_tins if paramso['lazy_tins'] == True else selected['tins']
-
     result_good = {}
     for ls in range(relen):
-        result_good[ls] = result[selected['n']][selected_use_tins][ls].x
+        result_good[ls] = result[n][selected_use_tins][ls] if selected_use_tins == 0 else result[n][selected_use_tins][ls].x
 
     return result_chi2dof, result_good

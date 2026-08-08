@@ -25,6 +25,7 @@ import plotdata
 import plotdata_etmc
 import fit_two
 import fit_three
+import build_R_pdf
 import quantities
 
 #%%
@@ -40,6 +41,7 @@ if __name__ == '__main__':
         parser.add_argument('-tc','--tech', type = str, required = True, metavar = '', help='technology')
         parser.add_argument('-pd','--plotdata', type = int, required = True, metavar = '', help='plot the data')
         parser.add_argument('-two','--two', type = int, required = True, metavar = '', help='fit the single particles')
+        parser.add_argument('-three','--three', type = int, default = 0, metavar = '', help='fit the three-point functions')
         parser.add_argument('-r2','--read2', type = str, required = True, metavar = '', help='read 2pt')
         parser.add_argument('-r3','--read3', type = str, required = True, metavar = '', help='read 3pt')
         args = parser.parse_args()
@@ -51,6 +53,7 @@ if __name__ == '__main__':
             tech = 'jackknife'
             plotdata = 0
             two = 1
+            three = 1
             read2 = 'fast'
             read3 = 'fast'
         args = Args()
@@ -66,6 +69,7 @@ if __name__ == '__main__':
 
     options = {}
     options['two'] = args.two
+    options['three'] = args.three
     options['plotdata'] = args.plotdata
     options['conf_tests'] = 0
 
@@ -110,8 +114,8 @@ if __name__ == '__main__':
     # Plot the original data
     if options['plotdata']:
         if etmc:
-            [xR, R] = build_R_pdf.build_R_pdf(params, data3, metadata, result=None)
-            plotdata_etmc.plotdata(params, data2, data3, metadata, two=True, three=True, three_pdf=True, xR=xR, R=R, label='plain')
+            [xR, R] = build_R_pdf.build_R_pdf(params, data2, data3, metadata, result=None)
+            plotdata_etmc.plotdata(params, data2, data3, metadata, two=True, three=True, three_pdf=True, xR=xR, R=R, result=None, label='plain')
         else:
             plotdata.plotdata(params, data2, data3, mtype='exp', two=True, three=True, three_pdf=True, label='plain')
 
@@ -128,13 +132,12 @@ if __name__ == '__main__':
     else:
         with open('../%s/spectra/%s/results_two_%s_%s.pckl'%(datadir['mydata'],params['ensemble'],params['ensemble'],params['tech']),'rb') as dfile:
             [data2, fdata2, result_para, result_chi2dof, result, ans] = pickle.load(dfile)
-    [xR, R] = build_R_pdf.build_R_pdf(params, data3, metadata, result)
 
     #%%
-#     # Dispersion relation
-#     if options['dispersion']:
-#         params['just_changing_tmin'] = 0
-#         [disfdata, disresult_para, disresult_chi2dof, disresult] = dispersion.dispersion(params, selected, result, sv=str(params['ens']))
+    # # Dispersion relation
+    # if options['dispersion']:
+    #     params['just_changing_tmin'] = 0
+    #     [disfdata, disresult_para, disresult_chi2dof, disresult] = dispersion.dispersion(params, selected, result, sv=str(params['ens']))
 
     #     with open('../%s/spectra/%s/dispersion_%s_%s.pckl'%(datadir['mydata'],params['ensname'],params['ensname'],params['tech']),'wb') as dfile:
     #         pickle.dump([disfdata, disresult_para, disresult_chi2dof, disresult],dfile)
@@ -145,25 +148,25 @@ if __name__ == '__main__':
 
     #%%
     # From here assume using ETMC data and do not write explicitly "if etmc" anymore.
+    [xR, R] = build_R_pdf.build_R_pdf(params, data2, data3, metadata, result)
     # Plot the 3pt data again with fitted mass
     if options['plotdata']:
-        plotdata_etmc.plotdata(params, data2, data3, metadata, two=False, three=True, three_pdf=False, result=result, label='mass')
+        plotdata_etmc.plotdata(params, data2, data3, metadata, two=False, three=True, three_pdf=False, xR=xR, R=R, result=result, label='mass')
 
     #%%
     # 3pt fit
     if options['three']:
         params['just_changing_tins'] = 0
         params['lazy_tins'] = 0
-        [fdata2, result_para, result_chi2dof, result, ans] = fit_three.fit_three(params, xR, R, metadata, result)
+        result_chi2dof, result_3pt = fit_three.fit_three(params, xR, R, metadata, result)
 
-        with open('../%s/spectra/%s/results_one_%s_%s.pckl'%(datadir['mydata'],params['ensemble'],params['ensemble'],params['tech']),'wb') as dfile:
-            pickle.dump([data2, fdata2, result_para, result_chi2dof, result, ans],dfile)
-
+        with open('../%s/spectra/%s/results_three_%s_%s.pckl'%(datadir['mydata'],params['ensemble'],params['ensemble'],params['tech']),'wb') as dfile:
+            pickle.dump([result_chi2dof, result_3pt],dfile)
     else:
-        with open('../%s/spectra/%s/results_one_%s_%s.pckl'%(datadir['mydata'],params['ensemble'],params['ensemble'],params['tech']),'rb') as dfile:
-            [data2, fdata2, result_para, result_chi2dof, result, ans] = pickle.load(dfile)
+        with open('../%s/spectra/%s/results_three_%s_%s.pckl'%(datadir['mydata'],params['ensemble'],params['ensemble'],params['tech']),'rb') as dfile:
+            [result_chi2dof, result_3pt] = pickle.load(dfile)
 
-    #%%
+     #%%
 #     # Some physical quantities
 #     if options['GEVP']:
 #         quantities.quantities(params, params2, relen, result, Gresult, weight)
