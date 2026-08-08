@@ -215,7 +215,7 @@ def plot_corr(data, params, ylog=True, cylim='no', sv='', tit='', figdir=''):
         data_mean[k] = cal_mean(data[k])
         data_err[k] = cal_err(data[k],params['tech'])
         x = np.arange(data[k].shape[1])
-        ax.errorbar(x=x,y=data_mean[k],yerr=data_err[k],ls='None',marker='o',color=inputs.clrscm(len(data),i),mec=inputs.clrscm(len(data),i),capsize=2,fillstyle='none',label=inputs.labels(k))
+        ax.errorbar(x=x,y=data_mean[k],yerr=data_err[k],ls='None',marker='o',color=inputs.clrscm(len(data),i),mec=inputs.clrscm(len(data),i),capsize=2,fillstyle='none',label=r'$%s$'%inputs.labels(k))
         ylimup = max(ylimup,np.max(data_mean[k][1:T//2-1]) * 100)
         ylimdown = min(ylimdown,np.min(data_mean[k][1:T//2-1]) / 100)
     #ylimdown=-1e30
@@ -225,7 +225,7 @@ def plot_corr(data, params, ylog=True, cylim='no', sv='', tit='', figdir=''):
         ax.set_ylim(cylim)
     ax.legend()
     ax.set_xlabel(r'$t$')
-    ax.set_ylabel('correlator')
+    ax.set_ylabel(r'$C(t)$')
     if ylog == True:
         ax.set_yscale('symlog',linthresh=1e-35)
         #ax.set_yscale('log')
@@ -297,7 +297,7 @@ def plot_meff(data,params_test,tau=1,mtype='exp',mylim='no',sv='',tit='',figdir=
         meff_err[k] = cal_err(meff[k],tech=params['tech'])
         mask_large = ((meff_err[k] / np.abs(meff_mean[k])) > 0.3) | np.isnan(meff_mean[k]) | np.isnan(meff_err[k])
         mask_normal = ~mask_large
-        ax.errorbar(x=x[mask_normal]+0.05*i,y=meff_mean[k][mask_normal],yerr=meff_err[k][mask_normal],ls='None',marker='o',color=inputs.clrscm(len(data),i),mec=inputs.clrscm(len(data),i),capsize=2,fillstyle='none',label=inputs.labels(k))
+        ax.errorbar(x=x[mask_normal]+0.05*i,y=meff_mean[k][mask_normal],yerr=meff_err[k][mask_normal],ls='None',marker='o',color=inputs.clrscm(len(data),i),mec=inputs.clrscm(len(data),i),capsize=2,fillstyle='none',label=r'$%s$'%inputs.labels(k))
         ax.errorbar(x=x[mask_large]+0.05*i,y=meff_mean[k][mask_large],yerr=meff_err[k][mask_large],ls='None',marker='o',color=inputs.clrscm(len(data),i),mec=inputs.clrscm(len(data),i),capsize=2,fillstyle='none',alpha=0.1)
         if (not all(np.isnan(i) for i in meff_mean[k])):
             #ylimup = max(ylimup,(np.nanmax(meff_mean[k][3:T//2-3]) - np.nanmin(meff_mean[k][3:T//2-3])) / 2 + np.nanmin(meff_mean[k][3:T//2-3]))
@@ -355,7 +355,7 @@ def plot_Z(params,E0_matrix,corrmat,vecs,t0,tv,tech,colors='b',figdir='',sv=''):
     x = np.arange(T)
     for n in range(N):
         for i in range(N):
-            ax[n].errorbar(x=x+0.05*i,y=Z_ni_mean[:,n,i],yerr=Z_ni_err[:,n,i],ls='None',marker='o',color=inputs.clrscm(N,i),mec=inputs.clrscm(N,i),capsize=2,fillstyle='none',label='op %d'%(i))
+            ax[n].errorbar(x=x+0.05*i,y=Z_ni_mean[:,n,i],yerr=Z_ni_err[:,n,i],ls='None',marker='o',color=inputs.clrscm(N,i),mec=inputs.clrscm(N,i),capsize=2,fillstyle='none',label=r'$O_{%d}$'%(i))
         ax[n].set_title(r'$E_{%d}$' % n)
         ax[n].axis([-0.2,T//2+3,0,1])
         ax[n].set_xlabel(r'$t$')
@@ -398,7 +398,7 @@ def plot_Aeff(data,params,tau=1,mtype='exp',sv='',tit='',figdir=''):
             ax = axes
         else:
             ax = axes[i]
-        ax.errorbar(x=x,y=Aeff_mean[k],yerr=Aeff_err[k],ls='None',marker='o',color=inputs.clrs[i],mec=inputs.clrs[i],capsize=2,fillstyle='none',label=inputs.labels(k))
+        ax.errorbar(x=x,y=Aeff_mean[k],yerr=Aeff_err[k],ls='None',marker='o',color=inputs.clrs[i],mec=inputs.clrs[i],capsize=2,fillstyle='none',label=r'$%s$'%inputs.labels(k))
         ylimup = (np.nanmax(Aeff_mean[k][int(0.15*T):T//2-6]) - np.nanmin(Aeff_mean[k][int(0.15*T):T//2-6])) + np.nanmin(Aeff_mean[k][int(0.15*T):T//2-6])
         #ylimdown = np.nanmin(Aeff_mean[k][int(0.15*T):T//2]) - Aeff_err[k][np.nanargmin(Aeff_mean[k][int(0.15*T):T//2])+3] * 2
         ylimdown = -(np.nanmax(Aeff_mean[k][int(0.15*T):T//2-6]) - np.nanmin(Aeff_mean[k][int(0.15*T):T//2-6])) + np.nanmin(Aeff_mean[k][int(0.15*T):T//2-6])
@@ -1066,14 +1066,13 @@ def plot_stability_3pt(k,paramso,selectedo,result,result_chi,tit='',sv='',figdir
         selected_low.append(mean[selected_time] - 3 * err[selected_time])
         selected_up.append(mean[selected_time] + 8 * err[selected_time])
         color = inputs.clrscm(len(params['tsep_list']),itsep)
-        axes[0].errorbar(x=x+0.1*itsep,y=mean,yerr=err,mfc='none',color=color,marker='o',linestyle='None',label=r'$t_{sep} = %d$'%tsep,capsize=2)
+        axes[0].errorbar(x=x+0.1*itsep,y=mean,yerr=err,mfc='none',color=color,marker='o',linestyle='None',label=r'$t_{\mathrm{sep}} = %d$'%tsep,capsize=2)
         axes[1].scatter(x=x+0.1*itsep,y=chi2,facecolor='w',edgecolor=color,marker='o')
         axes[0].scatter(tins+0.1*itsep,mean[selected_time],color='k',marker='o')
         axes[1].scatter(tins+0.1*itsep,chi2[selected_time],color='k',marker='o')
     axes[0].set_ylabel(r'$C$')
     axes[0].set_ylim([min(selected_low),max(selected_up)])
     axes[0].set_xlim([tins0-1,tins1+1])
-    axes[0].legend(ncol=len(params['tsep_list']),columnspacing=0.5,loc=1)
     axes[0].set_title(tit)
     axes[1].hlines(1,tins0-1,tins1+1,linestyle=':',alpha=0.3,color='k')
     axes[1].set_ylim([-0.1,2])
@@ -1083,7 +1082,7 @@ def plot_stability_3pt(k,paramso,selectedo,result,result_chi,tit='',sv='',figdir
     plt.tight_layout()
     Path('../%s/%s/'%(params['figures'],figdir)).mkdir(parents=True, exist_ok=True)
     plt.savefig('../%s/%s/stability_%s.pdf'%(params['figures'],figdir,sv),transparent=True)
-    # show_in_spyder()
+    show_in_spyder()
 
 
 def plot_result_3pt(k,data,paramso,selectedo,result,tit='',sv='',figdir=''):
@@ -1109,36 +1108,37 @@ def plot_result_3pt(k,data,paramso,selectedo,result,tit='',sv='',figdir=''):
         tins = selectedo['tins'][k][tsep]
         fit_mask = np.abs(x) <= tins
         ax.errorbar(x=x[~fit_mask],y=data_mean[~fit_mask],yerr=data_err[~fit_mask],ls='None',marker='o',color=color,mec=color,capsize=2,fillstyle='none',alpha=0.1)
-        ax.errorbar(x=x[fit_mask],y=data_mean[fit_mask],yerr=data_err[fit_mask],ls='None',marker='o',color=color,mec=color,capsize=2,fillstyle='none',label=r'$t_{sep} = %d$'%tsep)
-        xx = np.arange(xlim[0],xlim[1] + dt,dt)
+        ax.errorbar(x=x[fit_mask],y=data_mean[fit_mask],yerr=data_err[fit_mask],ls='None',marker='o',color=color,mec=color,capsize=2,fillstyle='none',label=r'$t_{\mathrm{sep}} = %d$'%tsep)
+        xx = np.unique(np.concatenate((np.arange(xlim[0],xlim[1] + dt,dt), [xlim[0], xlim[1], -tins, tins])))
         recon_matrix = np.zeros([relen,len(xx)])
         for ls in range(relen):
             recon_matrix[ls] = fit_function(xx,result[tsep][ls],moment,params,params['mtype'])
         recon_mean = cal_mean(recon_matrix)
         recon_err = cal_err(recon_matrix,tech)
-        fit_curve = np.abs(xx) <= tins
-        ax.fill_between(xx,recon_mean-recon_err,recon_mean+recon_err,color=color,alpha=0.1,edgecolor='none')
-        ax.fill_between(xx[fit_curve],recon_mean[fit_curve]-recon_err[fit_curve],recon_mean[fit_curve]+recon_err[fit_curve],color=color,alpha=0.3,edgecolor='none')
         fit_value = np.array([np.ravel(result[tsep][ls])[0] for ls in range(relen)])
         fit_mean = cal_mean(fit_value)
         fit_err = cal_err(fit_value,tech)
+        fit_curve = np.abs(xx) <= tins
+        ax.fill_between(np.array([-tins,tins]),fit_mean-fit_err,fit_mean+fit_err,color=color,alpha=0.3,edgecolor='none')
+        ax.fill_between(np.array([xlim[0],-tins]),fit_mean-fit_err,fit_mean+fit_err,color=color,alpha=0.1,edgecolor='none')
+        ax.fill_between(np.array([tins,xlim[1]]),fit_mean-fit_err,fit_mean+fit_err,color=color,alpha=0.1,edgecolor='none')
+        ax.fill_between(xx[fit_curve],recon_mean[fit_curve]-recon_err[fit_curve],recon_mean[fit_curve]+recon_err[fit_curve],color=color,alpha=0.3,edgecolor='none')
         ymin.append(fit_mean-fit_err*10)
         ymax.append(fit_mean+fit_err*10)
         ax_tsep.errorbar(tsep,fit_mean,yerr=fit_err,ls='None',marker='o',color=color,mec=color,capsize=2,fillstyle='none')
     ax.set_ylim([min(ymin),max(ymax)])
     ax.set_title(tit)
     ax.set_xlim(xlim)
-    ax.legend(ncol=len(params['tsep_list']),columnspacing=0.5,loc=1)
-    ax.set_xlabel(r'$t_j - t_{sep}/2$')
+    ax.set_xlabel(r'$t_j - t_{\mathrm{sep}}/2$')
     ax.set_ylabel(r'$\langle x^%d \rangle / \langle x \rangle$' % (moment - 1))
-    ax_tsep.set_xlabel(r'$t_{sep}$')
+    ax_tsep.set_xlabel(r'$t_{\mathrm{sep}}$')
     ax_tsep.set_xticks(params['tsep_list'])
     ax_tsep.set_xlim([min(params['tsep_list'])-2,max(params['tsep_list'])+2])
     ax_tsep.tick_params(axis='x',labelrotation=0)
     plt.tight_layout()
     Path('../%s/%s/'%(params['figures'],figdir)).mkdir(parents=True, exist_ok=True)
     plt.savefig('../%s/%s/result_%s.pdf'%(params['figures'],figdir,sv),transparent=True)
-    # show_in_spyder()
+    show_in_spyder()
 
 
 def chi_3pt(para,data,Linv,tins,nstates,params,mtype):
@@ -1235,12 +1235,12 @@ def fitting_3pt(p,paramso,data,mtype,selectedo,correlated=True):
                         for ls in range(relen):
                             result[n][tins][ls] = pool_result[ls]
         # Saving purly for just changing tins
-        dfile = open('../%s/spectra_full/%s/full_results_3pt_%s_%s_n%d_tf%d_tsep%d_%s.pckl'%(params['datadir']['mydata'],params['ensemble'],params['ensemble'],k,n,params['tf'],params['tsep'],params['tech']),'wb')
+        dfile = open('../%s/spectra_full/%s/full_results_3pt_%s_%s_moment%d_n%d_tf%d_tsep%d_%s.pckl'%(params['datadir']['mydata'],params['ensemble'],params['ensemble'],k,params['moment'],n,params['tf'],params['tsep'],params['tech']),'wb')
         pickle.dump(result,dfile)
         dfile.close()
     else:
-        print('    reading cached 3pt fits: n=%d, tf=%d, tsep=%d' % (n,params['tf'],params['tsep']), flush=True)
-        dfile = open('../%s/spectra_full/%s/full_results_3pt_%s_%s_n%d_tf%d_tsep%d_%s.pckl'%(params['datadir']['mydata'],params['ensemble'],params['ensemble'],k,n,params['tf'],params['tsep'],params['tech']),'rb')
+        print('    reading cached 3pt fits: moment=%d, n=%d, tf=%d, tsep=%d' % (params['moment'],n,params['tf'],params['tsep']), flush=True)
+        dfile = open('../%s/spectra_full/%s/full_results_3pt_%s_%s_moment%d_n%d_tf%d_tsep%d_%s.pckl'%(params['datadir']['mydata'],params['ensemble'],params['ensemble'],k,params['moment'],n,params['tf'],params['tsep'],params['tech']),'rb')
         result = pickle.load(dfile)
         dfile.close()
 

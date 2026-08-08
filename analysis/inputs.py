@@ -4,6 +4,7 @@ import pickle
 import h5py as h5
 import numpy as np
 import matplotlib.cm as cm
+import matplotlib.pyplot as plt
 
 
 # ETMC data are stored in data/traceless_operators/.
@@ -11,6 +12,10 @@ ETMC_ENSEMBLES = ['cA211', 'cB211', 'cC211']
 
 
 def cal_params(args):
+
+    plt.rcParams.update({'font.size': 20})
+    plt.rcParams["font.family"] = "Times New Roman"
+    plt.rcParams['text.usetex'] = True
 
     params = {}
     params['tech'] = args.tech
@@ -258,6 +263,9 @@ def clrscm(N,i):
 alphas = {1:0.6, 2:.6, 3:.6, 4:.6, 5:.6, 6:.6, 7:.6}
 
 def labels(k):
+    if k == 'pion': return r'\pi'
+    if k == 'kaon': return r'K'
+    if k == 'kaon_s': return r'K_s'
     def label_translate(kpart):
         par_mom = kpart.split('_')
         one_label = {}
