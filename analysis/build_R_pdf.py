@@ -10,6 +10,13 @@ def build_R_pdf(params, data2, data3, metadata, result):
 
     nflow = len(metadata['tau_list']) - 1
 
+    matching_coeffs = {}
+    for tf in range(1, nflow + 1):
+        tf_GeV2 = tf * metadata['flow_dt'] * params['hca'] ** 2
+        matching_coeffs[tf] = {
+            n: c_numeric(n, tf_GeV2, 2) for n in [2, 4, 5, 6, 7]
+        }
+
     R = {}
     x = {}
     for tsep in params['tsep_list']:
@@ -34,16 +41,14 @@ def build_R_pdf(params, data2, data3, metadata, result):
                 tf_GeV2 = tf * metadata['flow_dt'] * params['hca'] ** 2
 
                 for itsep, tsep in enumerate(params['tsep_list']):
-                    x = np.arange(tsep+1) - tsep / 2
                     for ls in range(relen):
-                        result_use = {k_one: {ls: [0, tp.cal_mass(data2[k_one][ls].real,mtype='cosh',tau=params['tau'])[T//2]]}} if result is None else result
-                        m_one = result_use[k_one][ls][1]
+                        m_one = tp.cal_mass(data2[k_one][ls].real,mtype='cosh',tau=params['tau'])[T//2] if result is None else result[k_one][ls][1]
 
-                        data_3pt_up = data3['%s-PDF-n_%d' % (k, n)][tsep][:,tf,:]
-                        data_3pt_down = data3['%s-PDF-n_2' % (k)][tsep][:,tf,:] * (- m_one) ** (n - 1)
+                        data_3pt_up = np.array(data3['%s-PDF-n_%d' % (k, n)][tsep][:,tf,:], copy=True)
+                        data_3pt_down = np.array(data3['%s-PDF-n_2' % (k)][tsep][:,tf,:] * (- m_one) ** (n - 1), copy=True)
                         if tf != 0:
-                            data_3pt_up *= c_numeric(2, tf_GeV2, 2)
-                            data_3pt_down *= c_numeric(n + 1, tf_GeV2, 2)
+                            data_3pt_up *= matching_coeffs[tf][2]
+                            data_3pt_down *= matching_coeffs[tf][n + 1]
 
                         data_3pt_up_tsep = data_3pt_up[ls]
                         data_3pt_down_tsep = data_3pt_down[ls]
