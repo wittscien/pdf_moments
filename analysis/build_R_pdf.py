@@ -45,7 +45,7 @@ def build_R_pdf(params, data2, data3, metadata, result):
                         m_one = tp.cal_mass(data2[k_one][ls].real,mtype='cosh',tau=params['tau'])[T//2] if result is None else result[k_one][ls][1]
 
                         data_3pt_up = np.array(data3['%s-PDF-n_%d' % (k, n)][tsep][:,tf,:], copy=True)
-                        data_3pt_down = np.array(data3['%s-PDF-n_2' % (k)][tsep][:,tf,:] * (- m_one) ** (n - 1), copy=True)
+                        data_3pt_down = np.array(data3['%s-PDF-n_2' % (k)][tsep][:,tf,:] * (- m_one) ** (n - 2), copy=True)
                         if tf != 0:
                             data_3pt_up *= matching_coeffs[tf][2]
                             data_3pt_down *= matching_coeffs[tf][n + 1]
