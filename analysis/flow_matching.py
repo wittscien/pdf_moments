@@ -74,6 +74,6 @@ if __name__ == '__main__':
 
     plt.figure()
     plt.plot(x_values, c_values)
-    plt.xlabel("sqrt 8t / fm")
-    plt.ylabel("c2")
+    plt.xlabel(r'$\sqrt{8t}\,/\,\mathrm{fm}$')
+    plt.ylabel(r'$c_{2}$')
     plt.show()

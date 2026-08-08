@@ -24,7 +24,7 @@ def fit_two(params, data2, mtype, obj):
         params['tmin'][2][k] = [2, selected['tmax'][k] - 3]
 
     two_name = '%s'%(params['ensemble'])
-    two_tit = r'$Ens=%s$'%(params['ensemble'])
+    two_tit = r'$\mathrm{Ens}=%s$'%(params['ensemble'])
     two_dir = '%s'%(params['ensemble'])
 
     result_para = {}
@@ -71,11 +71,11 @@ def fit_two(params, data2, mtype, obj):
             selected['tmin'][k] = selected_lazy_tmin
 
         # Plot stability
-        tp.plot_stability(k,1,params,selected,result_para[k],result_chi2dof[k],tit=r'%s %s'%(two_tit,inputs.labels(k)),sv='%s_%s'%(two_name,k),figdir='fit_two/%s'%(two_dir))
+        tp.plot_stability(k,1,params,selected,result_para[k],result_chi2dof[k],tit=r'%s\quad $%s$'%(two_tit,inputs.labels(k)),sv='%s_%s'%(two_name,k),figdir='fit_two/%s'%(two_dir))
 
         # Plot results
         fdata2_plot = {}
         fdata2_plot[k] = np.copy(fdata2[k])
-        tp.plot_result(fdata2_plot,params,selected,result[k],ans[k],tau=tau,mtype=params['mtype'],tit=r'%s %s'%(two_tit,inputs.labels(k)),sv='%s_%s'%(two_name,k),figdir='fit_two/%s'%(two_dir))
+        tp.plot_result(fdata2_plot,params,selected,result[k],ans[k],tau=tau,mtype=params['mtype'],tit=r'%s\quad $%s$'%(two_tit,inputs.labels(k)),sv='%s_%s'%(two_name,k),figdir='fit_two/%s'%(two_dir))
 
     return fdata2, result_para, result_chi2dof, result, ans

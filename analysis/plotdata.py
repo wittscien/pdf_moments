@@ -17,10 +17,10 @@ def plotdata(params, data2, data3, mtype, two, three, three_pdf, label=''):
     fdata3 = {k:data3[k].real for k in data3.keys()}
 
     two_name = '%s'%(params['ensemble'])
-    two_tit = r'$Ens=%s$'%(params['ensemble'])
+    two_tit = r'$\mathrm{Ens}=%s$'%(params['ensemble'])
     two_dir = '%s'%(params['ensemble'])
     three_name = '%s'%(params['ensemble'])
-    three_tit = r'$Ens=%s$'%(params['ensemble'])
+    three_tit = r'$\mathrm{Ens}=%s$'%(params['ensemble'])
     three_dir = '%s'%(params['ensemble'])
 
     t = np.arange(params['T'])
@@ -64,7 +64,7 @@ def plotdata(params, data2, data3, mtype, two, three, three_pdf, label=''):
                         ax.errorbar(x=x,y=mean,yerr=err,ls='-',marker='o',color=inputs.clrscm(tsep_max_3pt-1,tsep-1),mec=inputs.clrscm(tsep_max_3pt-1,tsep-1),capsize=2,fillstyle='none')
                     ax.set_xlim([-tsep_max_3pt//2 ,tsep_max_3pt//2])
                     # ax.set_ylim([0.9, 1])
-                    ax.set_xlabel(r'$t_j - t_{sep}/2$')
+                    ax.set_xlabel(r'$t_j - t_{\mathrm{sep}}/2$')
                     ax.set_ylabel(r'$C_3(t_f;t_j;t_i) / C_2(t_f;t_i)$')
                     ax.set_title(tit)
                     Path('../%s/%s/'%(params['figures'],figdir)).mkdir(parents=True, exist_ok=True)
@@ -103,8 +103,8 @@ def plotdata(params, data2, data3, mtype, two, three, three_pdf, label=''):
                         ax.errorbar(x=x,y=mean,yerr=err,ls='-',marker='o',color=inputs.clrscm(tsep_max_3pt-1,tsep-1),mec=inputs.clrscm(tsep_max_3pt-1,tsep-1),capsize=2,fillstyle='none')
                     ax.set_xlim([-tsep_max_3pt//2 ,tsep_max_3pt//2])
                     ax.set_ylim([-0.03, 0.03])
-                    ax.set_xlabel(r'$t_j - t_{sep}/2$')
-                    ax.set_ylabel(r'$\langle x^2 \rangle / \langle x \rangle$')
+                    ax.set_xlabel(r'$t_j - t_{\mathrm{sep}}/2$')
+                    ax.set_ylabel(r'$\langle x^{2} \rangle / \langle x \rangle$')
                     ax.set_title(tit)
                     Path('../%s/%s/'%(params['figures'],figdir)).mkdir(parents=True, exist_ok=True)
                     plt.savefig('../%s/%s/x3_x2_tf_%d_%s_%s_%s.pdf'%(params['figures'],figdir,tf,k,diag,sv),transparent=True)

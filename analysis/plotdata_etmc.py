@@ -17,10 +17,10 @@ def plotdata(params, data2, data3, metadata, two, three, three_pdf, xR, R, resul
     fdata3 = {k:{dt:data3[k][dt].real for dt in data3[k].keys()} for k in data3.keys()}
 
     two_name = '%s'%(params['ensemble'])
-    two_tit = r'$Ens=%s$'%(params['ensemble'])
+    two_tit = r'$\mathrm{Ens}=%s$'%(params['ensemble'])
     two_dir = '%s'%(params['ensemble'])
     three_name = '%s'%(params['ensemble'])
-    three_tit = r'$Ens=%s$'%(params['ensemble'])
+    three_tit = r'$\mathrm{Ens}=%s$'%(params['ensemble'])
     three_dir = '%s'%(params['ensemble'])
 
     T = params['T']
@@ -48,7 +48,7 @@ def plotdata(params, data2, data3, metadata, two, three, three_pdf, xR, R, resul
                 k_one = 'pion'
             elif k in ['kaon', 'kaon_s']:
                 k_one = 'kaon'
-            tit = r'$Ens=%s \quad %s$' % (params['ensemble'], k)
+            tit = r'$\mathrm{Ens}=%s \quad %s$' % (params['ensemble'], inputs.labels(k))
             data_2pt = fdata2['kaon' if k == 'kaon_s' else k] # [ls, tsep]
 
             fig, ax = plt.subplots(1,1)
@@ -69,7 +69,7 @@ def plotdata(params, data2, data3, metadata, two, three, three_pdf, xR, R, resul
                 ax.errorbar(x=xR[tsep],y=tp.cal_mean(R),yerr=tp.cal_err(R,tech=tech),ls='-',marker='o',color=inputs.clrscm(len_tsep_list,itsep),mec=inputs.clrscm(len_tsep_list,itsep),capsize=2,fillstyle='none')
             ax.set_xlim([-max(params['tsep_list'])//2 ,max(params['tsep_list'])//2])
             ax.set_ylim([0.5, 1.5])
-            ax.set_xlabel(r'$t_j - t_{sep}/2$')
+            ax.set_xlabel(r'$t_j - t_{\mathrm{sep}}/2$')
             ax.set_ylabel(r'$C_3(t_f;t_j;t_i) / C_2(t_f;t_i)$')
             ax.set_title(tit)
             Path('../%s/%s/'%(params['figures'],figdir)).mkdir(parents=True, exist_ok=True)
@@ -84,7 +84,7 @@ def plotdata(params, data2, data3, metadata, two, three, three_pdf, xR, R, resul
         nflow = len(metadata['tau_list']) - 1
 
         for k in params['key_3pt']:
-            tit = r'$Ens=%s \quad %s$' % (params['ensemble'], k)
+            tit = r'$\mathrm{Ens}=%s \quad %s$' % (params['ensemble'], inputs.labels(k))
             # n is the number of mu
             for n in range(3, 7):
                 for tf in range(nflow + 1):
@@ -96,7 +96,7 @@ def plotdata(params, data2, data3, metadata, two, three, three_pdf, xR, R, resul
                         ax.errorbar(x=xR[tsep],y=mean,yerr=err,ls='-',marker='o',color=inputs.clrscm(len_tsep_list,itsep),mec=inputs.clrscm(len_tsep_list,itsep),capsize=2,fillstyle='none')
                     ax.set_xlim([-max(params['tsep_list'])//2 ,max(params['tsep_list'])//2])
                     # ax.set_ylim([-0.03, 0.03])
-                    ax.set_xlabel(r'$t_j - t_{sep}/2$')
+                    ax.set_xlabel(r'$t_j - t_{\mathrm{sep}}/2$')
                     ax.set_ylabel(r'$\langle x^%d \rangle / \langle x \rangle$' % (n - 1))
                     ax.set_title(tit)
                     Path('../%s/%s/'%(params['figures'],figdir)).mkdir(parents=True, exist_ok=True)

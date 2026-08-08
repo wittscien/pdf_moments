@@ -13,17 +13,17 @@ def conf_dist(params, data2, data3, sv=''):
     tsep = 20
 
     corr_value = data2['pion'][:,tsep]
-    ax.scatter(x=np.arange(len(params['confs'])),y=corr_value,marker='o',color='k', label='2pt')
+    ax.scatter(x=np.arange(len(params['confs'])),y=corr_value,marker='o',color='k', label=r'$C_2$')
 
     # ZVl = params['Z_V^l']
     # corr_value = data3['pion-nder_0_diag_0'][:,0,0,tsep,tsep//2] * ZVl
     # ax.scatter(x=params['confs'],y=corr_value,marker='o',color='r', label='3pt')
 
     corr_value = data3['pion-PDF-n_1'][32][:,1,16]
-    ax.scatter(x=np.arange(len(params['confs'])),y=corr_value,marker='o',color='r', label='3pt')
+    ax.scatter(x=np.arange(len(params['confs'])),y=corr_value,marker='o',color='r', label=r'$C_3$')
 
-    ax.set_xlabel('conf #')
-    ax.set_ylabel(r'$C(tsep = %d)$'%(tsep))
+    ax.set_xlabel(r'$\mathrm{configuration\ number}$')
+    ax.set_ylabel(r'$C_2(t_{\mathrm{sep}}=%d)$'%(tsep))
     plt.tight_layout()
     ax.legend()
     Path('../%s/%s/%s/'%(params['figures'],'configurations',params['ensemble'])).mkdir(parents=True, exist_ok=True)
@@ -53,7 +53,7 @@ def bin_test(params, data2, sv=''):
 
     fig, ax = plt.subplots(1, 1)
     ax.errorbar(x=params['N']/Nb_list,y=mean_list,yerr=err_list,ls='None',marker='o',color='k',capsize=1,markersize=1)
-    ax.set_xlabel(r'$N/Nb$')
+    ax.set_xlabel(r'$N/N_{b}$')
     ax.set_xlim([0,71])
     ax.set_ylabel(r'$m_{\mathrm{eff}}(t=%d)$'%t)
     plt.tight_layout()
@@ -84,8 +84,8 @@ def boots_test(params, data2, sv=''):
 
     fig, ax = plt.subplots(1, 1)
     ax.scatter(x=Nboots_list,y=err_list,marker='o',color='k',s=1)
-    ax.set_xlabel('Nboots')
-    ax.set_ylabel(r'$err(m(t=13))$')
+    ax.set_xlabel(r'$N_{\mathrm{boot}}$')
+    ax.set_ylabel(r'$\sigma_{m}(t=13)$')
     plt.tight_layout()
     plt.draw()
     Path('../%s/%s/%s/%s/'%(params['figures'],'configurations',params['ensemble'],tech)).mkdir(parents=True, exist_ok=True)
