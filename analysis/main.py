@@ -47,7 +47,6 @@ if __name__ == '__main__':
         args = parser.parse_args()
     else:
         class Args:
-            ensemble = 'C24P29'
             ensemble = 'test'
             ensemble = 'cC211'
             tech = 'jackknife'

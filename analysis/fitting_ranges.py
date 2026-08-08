@@ -7,10 +7,10 @@ ranges_two = {
     'cD211': {'pion': [1, 20, 96], 'kaon': [1, 20, 96]},
 }
 
-# Each list is [n, tins].  tins is the selected half-width of the plateau.
+# Each list is [n, tins].  tins maps tsep to the selected half-width of the plateau.
 ranges_three = {
-    'test': {'pion': [1, 1], 'kaon': [1, 1], 'kaon_s': [1, 1]},
-    'cA211': {'pion': [1, 1], 'kaon': [1, 1], 'kaon_s': [1, 1]},
-    'cB211': {'pion': [1, 1], 'kaon': [1, 1], 'kaon_s': [1, 1]},
-    'cC211': {'pion': [1, 1], 'kaon': [1, 1], 'kaon_s': [1, 1]},
+    'test': {'pion': [1, {8: 1}], 'kaon': [1, {8: 1}], 'kaon_s': [1, {8: 1}]},
+    'cA211': {'pion': [1, {24: 1, 28: 1, 32: 1}], 'kaon': [1, {24: 1, 28: 1, 32: 1}], 'kaon_s': [1, {24: 1, 28: 1, 32: 1}]},
+    'cB211': {'pion': [1, {28: 1, 32: 1, 36: 1}], 'kaon': [1, {28: 1, 32: 1, 36: 1}], 'kaon_s': [1, {28: 1, 32: 1, 36: 1}]},
+    'cC211': {'pion': [1, {32: 1, 40: 1, 48: 1}], 'kaon': [1, {32: 1, 40: 1, 48: 1}], 'kaon_s': [1, {32: 1, 40: 1, 48: 1}]},
 }

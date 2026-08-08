@@ -1052,13 +1052,13 @@ def plot_stability_3pt(k,paramso,selectedo,result,result_chi,tit='',sv='',figdir
     fig.set_size_inches(6.4, 4)
     params = dict(paramso)
     n = selectedo['n'][k]
-    tins = selectedo['tins'][k]
     tins0 = min(min(result[tsep][n]) for tsep in params['tsep_list'])
     tins1 = max(max(result[tsep][n]) for tsep in params['tsep_list'])
     selected_low = []
     selected_up = []
     for itsep, tsep in enumerate(params['tsep_list']):
         x = np.array(sorted(result[tsep][n]))
+        tins = selectedo['tins'][k][tsep]
         mean = np.array([result[tsep][n][t]['mean'][0] for t in x])
         err = np.array([result[tsep][n][t]['err'][0] for t in x])
         chi2 = np.array([result_chi[tsep][n][t] for t in x])
@@ -1095,7 +1095,6 @@ def plot_result_3pt(k,data,paramso,selectedo,result,tit='',sv='',figdir=''):
     params = dict(paramso)
     tech = params['tech']
     selected = dict(selectedo)
-    selected['tins'] = selectedo['tins'][k]
     selected['n'] = selectedo['n'][k]
     moment = params['moment']
     dt = 0.01
@@ -1107,7 +1106,8 @@ def plot_result_3pt(k,data,paramso,selectedo,result,tit='',sv='',figdir=''):
         color = inputs.clrscm(len(params['tsep_list']),itsep)
         data_mean = cal_mean(data[tsep])
         data_err = cal_err(data[tsep],tech)
-        fit_mask = np.abs(x) <= selected['tins']
+        tins = selectedo['tins'][k][tsep]
+        fit_mask = np.abs(x) <= tins
         ax.errorbar(x=x[~fit_mask],y=data_mean[~fit_mask],yerr=data_err[~fit_mask],ls='None',marker='o',color=color,mec=color,capsize=2,fillstyle='none',alpha=0.1)
         ax.errorbar(x=x[fit_mask],y=data_mean[fit_mask],yerr=data_err[fit_mask],ls='None',marker='o',color=color,mec=color,capsize=2,fillstyle='none',label=r'$t_{sep} = %d$'%tsep)
         xx = np.arange(xlim[0],xlim[1] + dt,dt)
@@ -1116,7 +1116,7 @@ def plot_result_3pt(k,data,paramso,selectedo,result,tit='',sv='',figdir=''):
             recon_matrix[ls] = fit_function(xx,result[tsep][ls],moment,params,params['mtype'])
         recon_mean = cal_mean(recon_matrix)
         recon_err = cal_err(recon_matrix,tech)
-        fit_curve = np.abs(xx) <= selected['tins']
+        fit_curve = np.abs(xx) <= tins
         ax.fill_between(xx,recon_mean-recon_err,recon_mean+recon_err,color=color,alpha=0.1,edgecolor='none')
         ax.fill_between(xx[fit_curve],recon_mean[fit_curve]-recon_err[fit_curve],recon_mean[fit_curve]+recon_err[fit_curve],color=color,alpha=0.3,edgecolor='none')
         fit_value = np.array([np.ravel(result[tsep][ls])[0] for ls in range(relen)])
