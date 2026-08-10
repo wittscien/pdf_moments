@@ -48,11 +48,10 @@ if __name__ == '__main__':
         args = parser.parse_args()
     else:
         class Args:
-            ensemble = 'test'
             ensemble = 'cC211'
             tech = 'bootstrap'
             plotdata = 0
-            two = 1
+            two = 0
             three = 1
             read2 = 'fast'
             read3 = 'fast'
@@ -122,7 +121,7 @@ if __name__ == '__main__':
     #%%
     # One particle fit
     if options['two']:
-        params['just_changing_tmin'] = 1
+        params['just_changing_tmin'] = 0
         params['lazy_tmin'] = 0
         [fdata2, result_para, result_chi2dof, result, ans] = fit_two.fit_two(params, data2, mtype='cosh', obj='corr')
 
