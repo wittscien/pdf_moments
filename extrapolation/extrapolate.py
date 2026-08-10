@@ -58,15 +58,16 @@ def continuum_extrapolation(params, metadata, data, ensembles, fit_range, figdir
             plot_result = {}
             tf_list = sorted(data[ensembles[0]][k][moment].keys())
             for tf in tf_list:
-                flow_time_fm2 = metadata[ensembles[0]]['flow_times'][tf]
-                t_over_t0 = flow_time_fm2 / metadata[ensembles[0]]['t0']
+                # metadata stores t0/a^2 and t/a^2, so their ratio is t/t0.
+                t_over_t0 = metadata[ensembles[0]]['flow_times'][tf] / metadata[ensembles[0]]['t0']
                 x = []
                 data_matrix = []
                 ensemble_list = []
                 for ensemble in ensembles:
                     if tf not in data[ensemble][k][moment]: continue
                     samples = data[ensemble][k][moment][tf]
-                    x.append(params[ensemble]['spacing'] ** 2 / metadata[ensemble]['t0'])
+                    t0_fm2 = metadata[ensemble]['t0'] * params[ensemble]['spacing'] ** 2
+                    x.append(params[ensemble]['spacing'] ** 2 / t0_fm2)
                     data_matrix.append(samples)
                     ensemble_list.append(ensemble)
 
@@ -126,7 +127,7 @@ def continuum_extrapolation(params, metadata, data, ensembles, fit_range, figdir
     return result
 
 
-def flow_extrapolation(metadata, data, continuum, ensembles, fit_range, figdir):
+def flow_extrapolation(params, metadata, data, continuum, ensembles, fit_range, figdir):
     tech = 'bootstrap'
     # Colors and markers for the finite-a data, continuum limit, and flow fit
     ensemble_color = {'cA211': '#4477AA', 'cB211': '#228833', 'cC211': '#CC6677'}
@@ -143,7 +144,8 @@ def flow_extrapolation(metadata, data, continuum, ensembles, fit_range, figdir):
             tf_list = [tf for tf in sorted(continuum[k][moment].keys()) if flow_times[tf] > 0]
             x = flow_times[tf_list] / metadata[ensembles[0]]['t0']
             # Apply matching to the continuum-limit samples before the flow-time fit.
-            matching_factor = np.asarray([c_numeric(2,flow_times[tf] / 0.1973269804 ** 2,2) / c_numeric(moment,flow_times[tf] / 0.1973269804 ** 2,2) for tf in tf_list])
+            flow_times_GeV2 = flow_times[tf_list] * (1000 / params[ensembles[0]]['hca']) ** 2
+            matching_factor = np.asarray([c_numeric(2,t,2) / c_numeric(moment,t,2) for t in flow_times_GeV2])
             data_matrix = np.column_stack([continuum[k][moment][tf] for tf in tf_list]) * matching_factor
             selected = fit_range[k][moment]
             fit_index = np.asarray([i for i, tf in enumerate(tf_list) if selected[0] <= tf <= selected[1]],dtype=int)

@@ -29,7 +29,7 @@ if __name__ == '__main__':
     continuum = extrapolate.continuum_extrapolation(params, metadata, data, ensembles, fitting_ranges.ranges_continuum, figure_root)
 
     #%%
-    limits = extrapolate.flow_extrapolation(metadata, data, continuum, ensembles, fitting_ranges.ranges_flow, figure_root)
+    limits = extrapolate.flow_extrapolation(params, metadata, data, continuum, ensembles, fitting_ranges.ranges_flow, figure_root)
 
     #%%
     with open(output_root / 'continuum_bootstrap.pckl', 'wb') as dfile: pickle.dump(continuum,dfile)
