@@ -12,7 +12,8 @@ def build_R_pdf(params, data2, data3, metadata, result):
 
     matching_coeffs = {}
     for tf in range(1, nflow + 1):
-        tf_GeV2 = tf * metadata['flow_dt'] * params['hca'] ** 2
+        # flow_dt and t0 are flow times in fm^2, while c_numeric expects GeV^-2.
+        tf_GeV2 = tf * metadata['flow_dt'] / 0.1973269804 ** 2
         matching_coeffs[tf] = {
             matching_order: c_numeric(matching_order, tf_GeV2, 2)
             for matching_order in range(2, 7)
@@ -39,8 +40,6 @@ def build_R_pdf(params, data2, data3, metadata, result):
 
         for moment in range(3, 7):
             for tf in range(nflow + 1):
-                tf_GeV2 = tf * metadata['flow_dt'] * params['hca'] ** 2
-
                 for itsep, tsep in enumerate(params['tsep_list']):
                     for ls in range(relen):
                         m_one = tp.cal_mass(data2[k_one][ls].real,mtype='cosh',tau=params['tau'])[T//2] if result is None else result[k_one][ls][1]
