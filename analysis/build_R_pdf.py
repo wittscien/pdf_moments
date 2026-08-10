@@ -1,6 +1,5 @@
 import numpy as np
 import funcs as tp
-from flow_matching import c_numeric
 
 
 
@@ -10,15 +9,7 @@ def build_R_pdf(params, data2, data3, metadata, result):
 
     nflow = len(metadata['tau_list']) - 1
 
-    matching_coeffs = {}
-    for tf in range(1, nflow + 1):
-        # flow_dt and t0 are flow times in fm^2, while c_numeric expects GeV^-2.
-        tf_GeV2 = tf * metadata['flow_dt'] / 0.1973269804 ** 2
-        matching_coeffs[tf] = {
-            matching_order: c_numeric(matching_order, tf_GeV2, 2)
-            for matching_order in range(2, 7)
-        }
-
+    # Build flowed ratios without matching; matching is applied after the continuum limit.
     R = {}
     x = {}
     for tsep in params['tsep_list']:
@@ -46,9 +37,6 @@ def build_R_pdf(params, data2, data3, metadata, result):
 
                         data_3pt_up = np.array(data3['%s-PDF-n_%d' % (k, moment)][tsep][:,tf,:], copy=True)
                         data_3pt_down = np.array(data3['%s-PDF-n_2' % (k)][tsep][:,tf,:] * (- m_one) ** (moment - 2), copy=True)
-                        if tf != 0:
-                            data_3pt_up *= matching_coeffs[tf][2]
-                            data_3pt_down *= matching_coeffs[tf][moment]
 
                         data_3pt_up_tsep = data_3pt_up[ls]
                         data_3pt_down_tsep = data_3pt_down[ls]

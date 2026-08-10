@@ -5,6 +5,7 @@ import numpy as np
 from scipy.optimize import least_squares
 import funcs as tp
 import inputs
+from flow_matching import c_numeric
 
 
 def fit_function(x, para):
@@ -61,6 +62,7 @@ def continuum_extrapolation(params, metadata, data, ensembles, fit_range, figdir
                 err = []
                 ensemble_list = []
                 t_over_t0 = []
+                flow_time_fm2 = []
                 for ensemble in ensembles:
                     if tf not in data[ensemble][k][moment]: continue
                     samples = data[ensemble][k][moment][tf]
@@ -70,12 +72,13 @@ def continuum_extrapolation(params, metadata, data, ensembles, fit_range, figdir
                     ensemble_list.append(ensemble)
                     flow_times = np.asarray(metadata[ensemble].get('flow_times',np.asarray(metadata[ensemble]['tau_list']) * metadata[ensemble]['flow_dt']))
                     t_over_t0.append(flow_times[tf] / metadata[ensemble]['t0'])
+                    flow_time_fm2.append(flow_times[tf])
 
                 selected = fit_range[k][moment]
                 fit_index = np.asarray([i for i, ensemble in enumerate(ensemble_list) if ensemble in selected],dtype=int)
                 data_matrix = np.column_stack(data_matrix)
                 result_para = fitting(np.asarray(x)[fit_index],data_matrix[:,fit_index])
-                result[k][moment][tf] = {'t_over_t0': np.mean(t_over_t0), 't_over_t0_values': np.asarray(t_over_t0), 'ensembles': ensemble_list, 'a2_over_t0': np.asarray(x), 'samples': data_matrix, 'mean': tp.cal_mean(data_matrix), 'err': np.asarray(err), 'fit_indices': fit_index, 'fit': result_para}
+                result[k][moment][tf] = {'t_over_t0': np.mean(t_over_t0), 't_over_t0_values': np.asarray(t_over_t0), 'flow_time_fm2': np.mean(flow_time_fm2), 'flow_time_fm2_values': np.asarray(flow_time_fm2), 'ensembles': ensemble_list, 'a2_over_t0': np.asarray(x), 'samples': data_matrix, 'mean': tp.cal_mean(data_matrix), 'err': np.asarray(err), 'fit_indices': fit_index, 'fit': result_para}
 
             tf_list = sorted(result[k][moment].keys())
             ncols = 5
@@ -136,15 +139,17 @@ def flow_extrapolation(continuum, fit_range, figdir):
     for k in continuum:
         result[k] = {}
         for moment in sorted(continuum[k]):
-            tf_list = sorted(continuum[k][moment].keys())
+            tf_list = [tf for tf in sorted(continuum[k][moment].keys()) if continuum[k][moment][tf]['flow_time_fm2'] > 0]
             x = np.asarray([continuum[k][moment][tf]['t_over_t0'] for tf in tf_list])
-            data_matrix = np.column_stack([continuum[k][moment][tf]['fit']['samples'][:,0] for tf in tf_list])
+            # Apply matching to the continuum-limit samples before the flow-time fit.
+            matching_factor = np.asarray([c_numeric(2,continuum[k][moment][tf]['flow_time_fm2'] / 0.1973269804 ** 2,2) / c_numeric(moment,continuum[k][moment][tf]['flow_time_fm2'] / 0.1973269804 ** 2,2) for tf in tf_list])
+            data_matrix = np.column_stack([continuum[k][moment][tf]['fit']['samples'][:,0] for tf in tf_list]) * matching_factor
             mean = tp.cal_mean(data_matrix)
             err = tp.cal_err(data_matrix,tech)
             selected = fit_range[k][moment]
-            fit_index = np.arange(max(0,selected[0]),min(selected[1],len(tf_list)-1)+1,dtype=int)
+            fit_index = np.asarray([i for i, tf in enumerate(tf_list) if selected[0] <= tf <= selected[1]],dtype=int)
             result_para = fitting(x[fit_index],data_matrix[:,fit_index])
-            result[k][moment] = {'tf': np.asarray(tf_list,dtype=int), 't_over_t0': x, 'samples': data_matrix, 'mean': mean, 'err': err, 'fit_indices': fit_index, 'fit': result_para}
+            result[k][moment] = {'tf': np.asarray(tf_list,dtype=int), 't_over_t0': x, 'matching_factor': matching_factor, 'samples': data_matrix, 'mean': mean, 'err': err, 'fit_indices': fit_index, 'fit': result_para}
 
             fig, ax = plt.subplots(figsize=(6.4, 4))
             data_fit_mask = np.zeros(len(tf_list),dtype=bool)
@@ -156,11 +161,11 @@ def flow_extrapolation(continuum, fit_range, figdir):
                 ensemble_x = []
                 ensemble_y = []
                 ensemble_yerr = []
-                for tf in tf_list:
+                for itf, tf in enumerate(tf_list):
                     ensemble_index = continuum[k][moment][tf]['ensembles'].index(ensemble)
                     ensemble_x.append(continuum[k][moment][tf]['t_over_t0_values'][ensemble_index])
-                    ensemble_y.append(continuum[k][moment][tf]['mean'][ensemble_index])
-                    ensemble_yerr.append(continuum[k][moment][tf]['err'][ensemble_index])
+                    ensemble_y.append(continuum[k][moment][tf]['mean'][ensemble_index] * matching_factor[itf])
+                    ensemble_yerr.append(continuum[k][moment][tf]['err'][ensemble_index] * abs(matching_factor[itf]))
                 ensemble_x = np.asarray(ensemble_x)
                 ensemble_y = np.asarray(ensemble_y)
                 ensemble_yerr = np.asarray(ensemble_yerr)
