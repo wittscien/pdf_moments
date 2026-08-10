@@ -15,7 +15,7 @@ def build_R_pdf(params, data2, data3, metadata, result):
         tf_GeV2 = tf * metadata['flow_dt'] * params['hca'] ** 2
         matching_coeffs[tf] = {
             matching_order: c_numeric(matching_order, tf_GeV2, 2)
-            for matching_order in [2, 4, 5, 6, 7]
+            for matching_order in range(2, 7)
         }
 
     R = {}
@@ -49,7 +49,7 @@ def build_R_pdf(params, data2, data3, metadata, result):
                         data_3pt_down = np.array(data3['%s-PDF-n_2' % (k)][tsep][:,tf,:] * (- m_one) ** (moment - 2), copy=True)
                         if tf != 0:
                             data_3pt_up *= matching_coeffs[tf][2]
-                            data_3pt_down *= matching_coeffs[tf][moment + 1]
+                            data_3pt_down *= matching_coeffs[tf][moment]
 
                         data_3pt_up_tsep = data_3pt_up[ls]
                         data_3pt_down_tsep = data_3pt_down[ls]
