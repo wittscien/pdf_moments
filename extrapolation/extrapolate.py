@@ -55,47 +55,47 @@ def continuum_extrapolation(params, metadata, data, ensembles, fit_range, figdir
         result[k] = {}
         for moment in sorted(data[ensembles[0]][k].keys()):
             result[k][moment] = {}
+            plot_result = {}
             tf_list = sorted(data[ensembles[0]][k][moment].keys())
             for tf in tf_list:
+                flow_time_fm2 = metadata[ensembles[0]]['flow_times'][tf]
+                t_over_t0 = flow_time_fm2 / metadata[ensembles[0]]['t0']
                 x = []
                 data_matrix = []
-                err = []
                 ensemble_list = []
-                t_over_t0 = []
-                flow_time_fm2 = []
                 for ensemble in ensembles:
                     if tf not in data[ensemble][k][moment]: continue
                     samples = data[ensemble][k][moment][tf]
                     x.append(params[ensemble]['spacing'] ** 2 / metadata[ensemble]['t0'])
                     data_matrix.append(samples)
-                    err.append(tp.cal_err(samples,tech))
                     ensemble_list.append(ensemble)
-                    flow_times = np.asarray(metadata[ensemble].get('flow_times',np.asarray(metadata[ensemble]['tau_list']) * metadata[ensemble]['flow_dt']))
-                    t_over_t0.append(flow_times[tf] / metadata[ensemble]['t0'])
-                    flow_time_fm2.append(flow_times[tf])
 
                 selected = fit_range[k][moment]
                 fit_index = np.asarray([i for i, ensemble in enumerate(ensemble_list) if ensemble in selected],dtype=int)
                 data_matrix = np.column_stack(data_matrix)
                 result_para = fitting(np.asarray(x)[fit_index],data_matrix[:,fit_index])
-                result[k][moment][tf] = {'t_over_t0': np.mean(t_over_t0), 't_over_t0_values': np.asarray(t_over_t0), 'flow_time_fm2': np.mean(flow_time_fm2), 'flow_time_fm2_values': np.asarray(flow_time_fm2), 'ensembles': ensemble_list, 'a2_over_t0': np.asarray(x), 'samples': data_matrix, 'mean': tp.cal_mean(data_matrix), 'err': np.asarray(err), 'fit_indices': fit_index, 'fit': result_para}
+                result[k][moment][tf] = np.asarray([fit_function(0,para) for para in result_para['samples']])
+                plot_result[tf] = {'t_over_t0': t_over_t0, 'a2_over_t0': np.asarray(x), 'samples': data_matrix, 'fit_indices': fit_index, 'fit': result_para}
 
+            # Plot the continuum extrapolations.
             tf_list = sorted(result[k][moment].keys())
             ncols = 5
             nrows = int(np.ceil(len(tf_list) / ncols))
             fig, axes = plt.subplots(nrows, ncols, figsize=(3.2 * ncols, 2.8 * nrows), squeeze=False)
             axes = axes.reshape(-1)
             for axis, tf in zip(axes, tf_list):
-                result_now = result[k][moment][tf]
+                result_now = plot_result[tf]
                 x = result_now['a2_over_t0']
-                mean = result_now['mean']
-                err = result_now['err']
+                mean = tp.cal_mean(result_now['samples'])
+                err = tp.cal_err(result_now['samples'],tech)
                 fit_index = result_now['fit_indices']
                 data_fit_mask = np.zeros(len(x), dtype=bool)
                 data_fit_mask[fit_index] = True
                 axis.errorbar(x[~data_fit_mask],mean[~data_fit_mask],yerr=err[~data_fit_mask],ls='None',marker='o',color=data_color,mec=data_color,alpha=0.2,capsize=2,fillstyle='none')
                 axis.errorbar(x[data_fit_mask],mean[data_fit_mask],yerr=err[data_fit_mask],ls='None',marker='o',color=data_color,mec=data_color,capsize=2,fillstyle='none')
                 result_para = result_now['fit']
+                continuum_mean = tp.cal_mean(result[k][moment][tf])
+                continuum_err = tp.cal_err(result[k][moment][tf],tech)
                 fit_x = np.unique(np.concatenate((np.linspace(0,max(x)*1.15,100),[x[fit_index[0]],x[fit_index[-1]]])))
                 recon_matrix = np.zeros([len(result_para['samples']),len(fit_x)])
                 for ls in range(len(result_para['samples'])):
@@ -105,12 +105,12 @@ def continuum_extrapolation(params, metadata, data, ensembles, fit_range, figdir
                 fit_mask = (fit_x >= min(x[fit_index])) & (fit_x <= max(x[fit_index]))
                 axis.fill_between(fit_x,fit_mean-fit_err,fit_mean+fit_err,color=fit_color,alpha=0.20,edgecolor='none')
                 axis.fill_between(fit_x[fit_mask],fit_mean[fit_mask]-fit_err[fit_mask],fit_mean[fit_mask]+fit_err[fit_mask],color=fit_color,alpha=0.45,edgecolor='none')
-                axis.errorbar([0],[result_para['mean'][0]],yerr=[result_para['err'][0]],marker='s',markersize=6,color='k',capsize=2)
+                axis.errorbar([0],[continuum_mean],yerr=[continuum_err],marker='s',markersize=6,color='k',capsize=2)
                 axis.set_title(r'$t_f/t_0=%.3g$' % result_now['t_over_t0'])
                 axis.set_xlabel(r'$a^2/t_0$')
                 axis.set_ylabel(r'$\langle x^{%d}\rangle/\langle x\rangle$' % (moment - 1))
-                ymin = min(np.min(mean-err),np.min(fit_mean-fit_err),result_para['mean'][0]-result_para['err'][0])
-                ymax = max(np.max(mean+err),np.max(fit_mean+fit_err),result_para['mean'][0]+result_para['err'][0])
+                ymin = min(np.min(mean-err),np.min(fit_mean-fit_err),continuum_mean-continuum_err)
+                ymax = max(np.max(mean+err),np.max(fit_mean+fit_err),continuum_mean+continuum_err)
                 ypad = 0.05 * max(ymax - ymin, np.finfo(float).eps)
                 axis.set_ylim([ymin - ypad, ymax + ypad])
                 axis.tick_params(axis='both', direction='in', labelsize=8)
@@ -126,7 +126,7 @@ def continuum_extrapolation(params, metadata, data, ensembles, fit_range, figdir
     return result
 
 
-def flow_extrapolation(continuum, fit_range, figdir):
+def flow_extrapolation(metadata, data, continuum, ensembles, fit_range, figdir):
     tech = 'bootstrap'
     # Colors and markers for the finite-a data, continuum limit, and flow fit
     ensemble_color = {'cA211': '#4477AA', 'cB211': '#228833', 'cC211': '#CC6677'}
@@ -139,17 +139,22 @@ def flow_extrapolation(continuum, fit_range, figdir):
     for k in continuum:
         result[k] = {}
         for moment in sorted(continuum[k]):
-            tf_list = [tf for tf in sorted(continuum[k][moment].keys()) if continuum[k][moment][tf]['flow_time_fm2'] > 0]
-            x = np.asarray([continuum[k][moment][tf]['t_over_t0'] for tf in tf_list])
+            flow_times = np.asarray(metadata[ensembles[0]]['flow_times'])
+            tf_list = [tf for tf in sorted(continuum[k][moment].keys()) if flow_times[tf] > 0]
+            x = flow_times[tf_list] / metadata[ensembles[0]]['t0']
             # Apply matching to the continuum-limit samples before the flow-time fit.
-            matching_factor = np.asarray([c_numeric(2,continuum[k][moment][tf]['flow_time_fm2'] / 0.1973269804 ** 2,2) / c_numeric(moment,continuum[k][moment][tf]['flow_time_fm2'] / 0.1973269804 ** 2,2) for tf in tf_list])
-            data_matrix = np.column_stack([continuum[k][moment][tf]['fit']['samples'][:,0] for tf in tf_list]) * matching_factor
-            mean = tp.cal_mean(data_matrix)
-            err = tp.cal_err(data_matrix,tech)
+            matching_factor = np.asarray([c_numeric(2,flow_times[tf] / 0.1973269804 ** 2,2) / c_numeric(moment,flow_times[tf] / 0.1973269804 ** 2,2) for tf in tf_list])
+            data_matrix = np.column_stack([continuum[k][moment][tf] for tf in tf_list]) * matching_factor
             selected = fit_range[k][moment]
             fit_index = np.asarray([i for i, tf in enumerate(tf_list) if selected[0] <= tf <= selected[1]],dtype=int)
             result_para = fitting(x[fit_index],data_matrix[:,fit_index])
-            result[k][moment] = {'tf': np.asarray(tf_list,dtype=int), 't_over_t0': x, 'matching_factor': matching_factor, 'samples': data_matrix, 'mean': mean, 'err': err, 'fit_indices': fit_index, 'fit': result_para}
+            result[k][moment] = np.asarray([fit_function(0,para) for para in result_para['samples']])
+
+            # Plot the flow-time extrapolation.
+            mean = tp.cal_mean(data_matrix)
+            err = tp.cal_err(data_matrix,tech)
+            limit_mean = tp.cal_mean(result[k][moment])
+            limit_err = tp.cal_err(result[k][moment],tech)
 
             fig, ax = plt.subplots(figsize=(6.4, 4))
             data_fit_mask = np.zeros(len(tf_list),dtype=bool)
@@ -157,18 +162,11 @@ def flow_extrapolation(continuum, fit_range, figdir):
             ensemble_mean = []
             ensemble_err = []
             # Plot the data before continuum extrapolation; fade points outside the flow fit range
-            for ensemble in continuum[k][moment][tf_list[0]]['ensembles']:
-                ensemble_x = []
-                ensemble_y = []
-                ensemble_yerr = []
-                for itf, tf in enumerate(tf_list):
-                    ensemble_index = continuum[k][moment][tf]['ensembles'].index(ensemble)
-                    ensemble_x.append(continuum[k][moment][tf]['t_over_t0_values'][ensemble_index])
-                    ensemble_y.append(continuum[k][moment][tf]['mean'][ensemble_index] * matching_factor[itf])
-                    ensemble_yerr.append(continuum[k][moment][tf]['err'][ensemble_index] * abs(matching_factor[itf]))
-                ensemble_x = np.asarray(ensemble_x)
-                ensemble_y = np.asarray(ensemble_y)
-                ensemble_yerr = np.asarray(ensemble_yerr)
+            for ensemble in ensembles:
+                ensemble_x = np.asarray(metadata[ensemble]['flow_times'])[tf_list] / metadata[ensemble]['t0']
+                ensemble_matrix = np.column_stack([data[ensemble][k][moment][tf] for tf in tf_list]) * matching_factor
+                ensemble_y = tp.cal_mean(ensemble_matrix)
+                ensemble_yerr = tp.cal_err(ensemble_matrix,tech)
                 ensemble_mean.append(ensemble_y)
                 ensemble_err.append(ensemble_yerr)
                 ax.errorbar(ensemble_x[~data_fit_mask],ensemble_y[~data_fit_mask],yerr=ensemble_yerr[~data_fit_mask],ls='None',marker=ensemble_marker[ensemble],markersize=4,color=ensemble_color[ensemble],mec=ensemble_color[ensemble],capsize=2,fillstyle='none',alpha=0.12,zorder=1)
@@ -187,13 +185,13 @@ def flow_extrapolation(continuum, fit_range, figdir):
             fit_mask = (fit_x >= x[fit_index[0]]) & (fit_x <= x[fit_index[-1]])
             ax.fill_between(fit_x,fit_mean-fit_err,fit_mean+fit_err,color=fit_color,alpha=0.20,edgecolor='none')
             ax.fill_between(fit_x[fit_mask],fit_mean[fit_mask]-fit_err[fit_mask],fit_mean[fit_mask]+fit_err[fit_mask],color=fit_color,alpha=0.45,edgecolor='none',label='flow fit')
-            ax.errorbar([0],[result_para['mean'][0]],yerr=[result_para['err'][0]],marker='P',markersize=7,color='k',capsize=2,label=r'$t_f\to 0$',zorder=4)
+            ax.errorbar([0],[limit_mean],yerr=[limit_err],marker='P',markersize=7,color='k',capsize=2,label=r'$t_f\to 0$',zorder=4)
             ax.set_xlabel(r'$t_f/t_0$')
             ax.set_ylabel(r'$\langle x^{%d}\rangle/\langle x\rangle$' % (moment - 1))
             ax.set_title(r'$%s\quad \mathrm{continuum}$' % inputs.labels(k))
             # Set the y range from the fit region so noisy unused points do not compress the plot
-            ymin = min(np.min(ensemble_mean[:,fit_index]-ensemble_err[:,fit_index]),np.min(mean[fit_index]-err[fit_index]),np.min(fit_mean-fit_err),result_para['mean'][0]-result_para['err'][0])
-            ymax = max(np.max(ensemble_mean[:,fit_index]+ensemble_err[:,fit_index]),np.max(mean[fit_index]+err[fit_index]),np.max(fit_mean+fit_err),result_para['mean'][0]+result_para['err'][0])
+            ymin = min(np.min(ensemble_mean[:,fit_index]-ensemble_err[:,fit_index]),np.min(mean[fit_index]-err[fit_index]),np.min(fit_mean-fit_err),limit_mean-limit_err)
+            ymax = max(np.max(ensemble_mean[:,fit_index]+ensemble_err[:,fit_index]),np.max(mean[fit_index]+err[fit_index]),np.max(fit_mean+fit_err),limit_mean+limit_err)
             ypad = 0.05 * max(ymax - ymin, np.finfo(float).eps)
             ax.set_ylim([ymin - ypad, ymax + ypad])
             ax.tick_params(axis='both', direction='in')
@@ -205,5 +203,5 @@ def flow_extrapolation(continuum, fit_range, figdir):
             tp.show_in_spyder()
             plt.close(fig)
 
-            print('%s moment=%d: %s' % (k,moment,repr(gv.gvar(result_para['mean'][0],result_para['err'][0]))))
+            print('%s moment=%d: %s' % (k,moment,repr(gv.gvar(limit_mean,limit_err))))
     return result
