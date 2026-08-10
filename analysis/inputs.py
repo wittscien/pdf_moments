@@ -222,11 +222,10 @@ def cal_params(args):
     if params['tech'] == 'jackknife':
         params['relen'] = params['Nb'] + 1
     if params['tech'] == 'bootstrap':
-        params['boots_num'] = 2000
-        #params['boots_num'] = 400
+        params['boots_num'] = 200
         params['Nbs'] = params['boots_num']
         params['Mbs'] = params['Nb']
-        params['seed'] = 0
+        params['seed'] = ETMC_ENSEMBLES.index(params['ensemble']) if etmc else 0
         params['relen'] = params['boots_num'] + 1
 
     return params

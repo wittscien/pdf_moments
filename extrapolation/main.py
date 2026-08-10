@@ -14,7 +14,7 @@ import reading
 #%%
 if __name__ == '__main__':
     ensembles = ['cA211', 'cB211', 'cC211']
-    tech = 'jackknife'
+    tech = 'bootstrap'
 
     result_root = Path('../mydata/main/spectra')
     metadata_root = Path('../mydata/main/corr')

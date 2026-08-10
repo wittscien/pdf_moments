@@ -50,10 +50,10 @@ if __name__ == '__main__':
         class Args:
             ensemble = 'test'
             ensemble = 'cC211'
-            tech = 'jackknife'
+            tech = 'bootstrap'
             plotdata = 0
-            two = 0
-            three = 0
+            two = 1
+            three = 1
             read2 = 'fast'
             read3 = 'fast'
         args = Args()
