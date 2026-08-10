@@ -5,7 +5,6 @@ import scipy as sp
 import funcs as tp
 import inputs
 import matplotlib.pyplot as plt
-from flow_matching import c_numeric
 
 
 

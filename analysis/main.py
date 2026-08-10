@@ -168,7 +168,7 @@ if __name__ == '__main__':
     #%%
     # Plot the largest-tsep result versus flow time as the final analysis step.
     largest_tsep_ratios = ratio.largest_tsep_result(result_3pt, params['tsep_list'])
-    ratio.plot_ratio_vs_tf(largest_tsep_ratios, params['tech'], params['ensemble'], '../%s' % params['figures'])
+    ratio.plot_ratio_vs_tf(largest_tsep_ratios, metadata, params['tech'], params['ensemble'], '../%s' % params['figures'])
     with open('../%s/spectra/%s/results_three_largest_tsep_%s.pckl' % (
             datadir['mydata'], params['ensemble'], params['tech']), 'wb') as dfile:
         pickle.dump(largest_tsep_ratios, dfile)

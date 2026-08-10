@@ -58,7 +58,7 @@ def continuum_extrapolation(params, metadata, data, ensembles, fit_range, figdir
             plot_result = {}
             tf_list = sorted(data[ensembles[0]][k][moment].keys())
             for tf in tf_list:
-                # metadata stores t0/a^2 and t/a^2, so their ratio is t/t0.
+                # metadata['t0'] is sqrt(t0) in fm, while flow_times stores t/sqrt(t0) in fm.
                 t_over_t0 = metadata[ensembles[0]]['flow_times'][tf] / metadata[ensembles[0]]['t0']
                 x = []
                 data_matrix = []
@@ -66,8 +66,7 @@ def continuum_extrapolation(params, metadata, data, ensembles, fit_range, figdir
                 for ensemble in ensembles:
                     if tf not in data[ensemble][k][moment]: continue
                     samples = data[ensemble][k][moment][tf]
-                    t0_fm2 = metadata[ensemble]['t0'] * params[ensemble]['spacing'] ** 2
-                    x.append(params[ensemble]['spacing'] ** 2 / t0_fm2)
+                    x.append((params[ensemble]['spacing'] / metadata[ensemble]['t0']) ** 2)
                     data_matrix.append(samples)
                     ensemble_list.append(ensemble)
 
@@ -144,7 +143,8 @@ def flow_extrapolation(params, metadata, data, continuum, ensembles, fit_range, 
             tf_list = [tf for tf in sorted(continuum[k][moment].keys()) if flow_times[tf] > 0]
             x = flow_times[tf_list] / metadata[ensembles[0]]['t0']
             # Apply matching to the continuum-limit samples before the flow-time fit.
-            flow_times_GeV2 = flow_times[tf_list] * (1000 / params[ensembles[0]]['hca']) ** 2
+            sqrt_t0_GeVinv = metadata[ensembles[0]]['t0'] / params[ensembles[0]]['spacing'] * 1000 / params[ensembles[0]]['hca']
+            flow_times_GeV2 = x * sqrt_t0_GeVinv ** 2
             matching_factor = np.asarray([c_numeric(2,t,2) / c_numeric(moment,t,2) for t in flow_times_GeV2])
             data_matrix = np.column_stack([continuum[k][moment][tf] for tf in tf_list]) * matching_factor
             selected = fit_range[k][moment]

@@ -34,21 +34,21 @@ def largest_tsep_result(result_3pt, tsep_list=None):
     return largest_tsep_ratios
 
 
-def plot_ratio_vs_tf(largest_tsep_ratios, tech, ensemble, figure_dir):
-    """Plot the largest-``tsep`` ratio against the integer flow step."""
+def plot_ratio_vs_tf(largest_tsep_ratios, metadata, tech, ensemble, figure_dir):
+    """Plot the largest-``tsep`` ratio against ``t/t0`` before matching."""
     figure_dir = Path(figure_dir) / 'ratio_tf' / ensemble
     figure_dir.mkdir(parents=True, exist_ok=True)
 
     for k in largest_tsep_ratios:
         for moment in sorted(largest_tsep_ratios[k]):
             tf_list = sorted(largest_tsep_ratios[k][moment], key=int)
-            x = np.asarray(tf_list, dtype=float)
+            x = np.asarray(metadata['flow_times'])[np.asarray(tf_list,dtype=int)] / metadata['t0']
             y = np.asarray([tp.cal_mean(largest_tsep_ratios[k][moment][tf]) for tf in tf_list])
             yerr = np.asarray([tp.cal_err(largest_tsep_ratios[k][moment][tf], tech)[()] for tf in tf_list])
 
             fig, ax = plt.subplots(figsize=(6.4, 4))
             ax.errorbar(x, y, yerr=yerr, ls='None', marker='o', color=DATA_COLOR, mec=DATA_COLOR, capsize=2, fillstyle='none', label=r'$t_{\mathrm{sep}}=\mathrm{max}$')
-            ax.set_xlabel(r'$t_f$')
+            ax.set_xlabel(r'$t_f/t_0$')
             ax.set_ylabel(r'$\langle x^{%d}\rangle/\langle x\rangle$' % (moment - 1))
             ax.set_title(r'$\mathrm{Ens}=%s\quad %s$' % (ensemble, inputs.labels(k)))
             ax.set_ylim([min(y[3] - 3 * yerr[3], y[-1] - 3 * yerr[-1]), max(y[3] + 10 * yerr[3], y[-1] + 10 * yerr[-1])])

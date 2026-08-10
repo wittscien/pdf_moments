@@ -13,6 +13,10 @@ def reading(params, read2, read3):
         data2['pion']                 -> [configuration, time]
         data3['pion-PDF-n_2'][dt]     -> [configuration, flow, insertion time]
 
+        metadata['t0']                 -> sqrt(t0) [fm]
+        metadata['flow_dt']            -> delta(t)/sqrt(t0) [fm]
+        metadata['flow_times']         -> t/sqrt(t0) [fm]
+
     The three dt values use the same configurations and source times, so the
     2pt and PDF data stay statistically paired.  Equal configuration numbers
     in the a and b sets are kept as different samples.
@@ -113,6 +117,7 @@ def reading(params, read2, read3):
                                 ]))
 
                 metadata['tau_list'] = tau_list
+                # Keep the original HDF5 names, although t0 stores sqrt(t0) rather than t0.
                 metadata['flow_dt'] = float(three_file.attrs['flow_dt'])
                 metadata['t0'] = float(three_file.attrs['t0'])
 
@@ -137,6 +142,7 @@ def reading(params, read2, read3):
                     for dt, values in data3_lists[moment].items()
                 }
 
+    # These values have units of fm and equal t/sqrt(t0), not physical flow times in fm^2.
     metadata['flow_times'] = np.asarray(metadata['tau_list']) * metadata['flow_dt']
 
     if read2 == 'direct':

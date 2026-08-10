@@ -7,8 +7,8 @@ with h5py.File(filename, 'r') as f:
     print(dict(f.attrs))       # 根目录的全部 attributes
 
     print(f.attrs['tau_list'])
-    print(f.attrs['flow_dt'])
-    print(f.attrs['t0'])
+    print('delta(t)/sqrt(t0) [fm]:', f.attrs['flow_dt'])
+    print('sqrt(t0) [fm]:', f.attrs['t0'])
 
     print(list(f['O44'].keys()))
     print(f['O44/dt32/st05/tau00'][:])
