@@ -5,40 +5,47 @@ import gvar as gv
 import funcs as tp
 import inputs
 
-def quantities(params, params2, relen, result, Gresult, weighto):
-    weight = 0 if weighto == 'no' else weighto
-
+def quantities(params, relen, result):
     relen = params['relen']
     tech = params['tech']
-    # aaa
     L = params['L']
-    mpi_matrix = np.zeros(relen)
+    mone_matrix = np.zeros([relen, 2])
     for i in range(relen):
-        mpi_matrix[i] = result['pion_0'][i][1]
-    mpi_mean = tp.cal_mean(mpi_matrix)
-    mpi_err = tp.cal_err(mpi_matrix,tech)
-    print('mpi = '+repr(gv.gvar(mpi_mean * params['hca'],mpi_err * params['hca'])), 'MeV')
+        mone_matrix[i] = [result['pion'][i][1], result['kaon'][i][1]]
+    mone_mean = tp.cal_mean(mone_matrix)
+    mone_err = tp.cal_err(mone_matrix,tech)
+    mone = gv.gvar(mone_mean * params['hca'], mone_err * params['hca'])
     #print(2 * np.sqrt(mpi**2+(2*np.pi/L)**2) + np.sqrt(mpi**2+2*(2*np.pi/L)**2))
 
     # mpi L
     mpiL_matrix = np.zeros(relen)
     for ls in range(relen):
-        mpiL_matrix[ls] = result['pion_0'][ls][1] * params['L']
+        mpiL_matrix[ls] = result['pion'][ls][1] * params['L']
     mpiL_mean = tp.cal_mean(mpiL_matrix)
     mpiL_err = tp.cal_err(mpiL_matrix,tech)
-    print('mpiL = '+repr(gv.gvar(mpiL_mean,mpiL_err)))
+    mpiL = gv.gvar(mpiL_mean,mpiL_err)
+    print('\nPhysical quantities')
+    print('-------------------')
+    print('m_pi   = %s MeV' % mone[0])
+    print('m_K    = %s MeV' % mone[1])
+    print('m_pi L = %s\n' % mpiL)
 
-    # In mpi unit
-    print('In mpi unit:')
-    for k in Gresult.keys():
-        Gmass_mpi_matrix = np.zeros(relen)
-        for ls in range(relen):
-            Gmass_mpi_matrix[ls] = (Gresult[k][ls][0] + weight) / result['pion_0'][ls][1]
-        Gmass_mpi_mean = tp.cal_mean(Gmass_mpi_matrix)
-        Gmass_mpi_err = tp.cal_err(Gmass_mpi_matrix,tech)
-        print(k, 'm = '+repr(gv.gvar(Gmass_mpi_mean,Gmass_mpi_err)))
-
-    # Writing to txt
-    with open('../%s/spectra/%s/results_one_%s_%s.txt'%(params['datadir']['mydata'],params['ensname'],params['ensname'],params['tech']), 'w') as txt_file:
-        for ls in range(relen):
-            txt_file.write("%d %f %f \n" % (ls, mpi_matrix[ls] * params['hca'], mpiL_matrix[ls]))
+    # For others
+    # Path('../%s/levels/'%(params['datadir']['mydata'])).mkdir(parents=True, exist_ok=True)
+    # one_matrix = np.zeros((relen, 7))
+    # for ls in range(relen):
+    #     one_matrix[ls, :6] = np.array([result['pion_0'][ls][1], result['K_0'][ls][1], result['eta_0'][ls][0], result['D_0'][ls][1], result['Ds_0'][ls][1], result['Dst_0'][ls][1]])
+    #     one_matrix[ls, 6] = result['pion_0'][ls][1] * params['L']
+    # one_mean = tp.cal_mean(one_matrix)
+    # one_err = tp.cal_err(one_matrix, tech)
+    # # Writing to txt
+    # with open('../%s/levels/results_one_%s_%s.txt' % (params['datadir']['mydata'],params['ensname'],params['tech']), 'w') as txt_file:
+    #     txt_file.write("m_pi m_K m_eta m_D m_Ds m_Dst mpiL\n")
+    #     for i in range(one_matrix.shape[1]):
+    #         txt_file.write("%s " % (repr(gv.gvar(one_mean[i], one_err[i]))))
+    #     txt_file.write("\n")
+    #     for ls in range(relen):
+    #         txt_file.write("%d " % (ls))
+    #         for i in range(one_matrix.shape[1]):
+    #             txt_file.write("%f " % (one_matrix[ls, i]))
+    #         txt_file.write("\n")

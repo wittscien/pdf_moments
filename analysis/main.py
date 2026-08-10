@@ -175,6 +175,5 @@ if __name__ == '__main__':
         pickle.dump(largest_tsep_ratios, dfile)
 
     #%%
-#     # Some physical quantities
-#     if options['GEVP']:
-#         quantities.quantities(params, params2, relen, result, Gresult, weight)
+    # Some physical quantities
+    quantities.quantities(params, relen, result)

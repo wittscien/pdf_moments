@@ -1112,7 +1112,7 @@ def plot_result_3pt(k,data,paramso,selectedo,result,tit='',sv='',figdir=''):
         xx = np.unique(np.concatenate((np.arange(xlim[0],xlim[1] + dt,dt), [xlim[0], xlim[1], -tins, tins])))
         recon_matrix = np.zeros([relen,len(xx)])
         for ls in range(relen):
-            recon_matrix[ls] = fit_function(xx,result[tsep][ls],moment,params,params['mtype'])
+            recon_matrix[ls] = fit_function(xx,result[tsep][ls],selected['n'],params,params['mtype'])
         recon_mean = cal_mean(recon_matrix)
         recon_err = cal_err(recon_matrix,tech)
         fit_value = np.array([np.ravel(result[tsep][ls])[0] for ls in range(relen)])
