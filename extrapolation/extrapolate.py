@@ -21,12 +21,17 @@ def chi(para, data, Linv, x):
     return chi_now
 
 
-def fitting(x, samples):
+def fitting(x, samples, correlated):
     tech = 'bootstrap'
     x = np.asarray(x, dtype=float)
     samples = np.asarray(samples, dtype=float)
-    prior = [np.mean(samples[0]), 0.0]
+    # Use the straight-line fit to the central sample as the common bootstrap initial value.
+    prior = np.polyfit(x,samples[0],1)[::-1]
     cov = tp.cal_cov(samples,tech)
+    if not correlated:
+        cov_diag = np.diag(cov)
+        cov_diag = np.where(cov_diag == 0,1e-32,cov_diag)
+        cov = np.diag(cov_diag)
     Linv = {'data': np.linalg.inv(np.linalg.cholesky(cov))}
     result = {}
     para_matrix = np.zeros([len(samples),len(prior)])
@@ -43,7 +48,7 @@ def fitting(x, samples):
     return result_para
 
 
-def continuum_extrapolation(params, metadata, data, ensembles, fit_range, figdir):
+def continuum_extrapolation(params, metadata, data, ensembles, fit_range, correlated, figdir):
     tech = 'bootstrap'
     data_color = '#3C5488'
     fit_color = '#E64B35'
@@ -73,7 +78,7 @@ def continuum_extrapolation(params, metadata, data, ensembles, fit_range, figdir
                 selected = fit_range[k][moment]
                 fit_index = np.asarray([i for i, ensemble in enumerate(ensemble_list) if ensemble in selected],dtype=int)
                 data_matrix = np.column_stack(data_matrix)
-                result_para = fitting(np.asarray(x)[fit_index],data_matrix[:,fit_index])
+                result_para = fitting(np.asarray(x)[fit_index],data_matrix[:,fit_index],correlated)
                 result[k][moment][tf] = np.asarray([fit_function(0,para) for para in result_para['samples']])
                 plot_result[tf] = {'t_over_t0': t_over_t0, 'a2_over_t0': np.asarray(x), 'samples': data_matrix, 'fit_indices': fit_index, 'fit': result_para}
 
@@ -126,7 +131,7 @@ def continuum_extrapolation(params, metadata, data, ensembles, fit_range, figdir
     return result
 
 
-def flow_extrapolation(params, metadata, data, continuum, ensembles, fit_range, figdir):
+def flow_extrapolation(params, metadata, data, continuum, ensembles, fit_range, correlated, figdir):
     tech = 'bootstrap'
     # Colors and markers for the finite-a data, continuum limit, and flow fit
     ensemble_color = {'cA211': '#4477AA', 'cB211': '#228833', 'cC211': '#CC6677'}
@@ -149,7 +154,7 @@ def flow_extrapolation(params, metadata, data, continuum, ensembles, fit_range, 
             data_matrix = np.column_stack([continuum[k][moment][tf] for tf in tf_list]) * matching_factor
             selected = fit_range[k][moment]
             fit_index = np.asarray([i for i, tf in enumerate(tf_list) if selected[0] <= tf <= selected[1]],dtype=int)
-            result_para = fitting(x[fit_index],data_matrix[:,fit_index])
+            result_para = fitting(x[fit_index],data_matrix[:,fit_index],correlated)
             result[k][moment] = np.asarray([fit_function(0,para) for para in result_para['samples']])
 
             # Plot the flow-time extrapolation.

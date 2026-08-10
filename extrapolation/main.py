@@ -15,6 +15,8 @@ import reading
 if __name__ == '__main__':
     ensembles = ['cA211', 'cB211', 'cC211']
     tech = 'bootstrap'
+    continuum_correlated = True
+    flow_correlated = False
 
     result_root = Path('../mydata/main/spectra')
     metadata_root = Path('../mydata/main/corr')
@@ -26,10 +28,10 @@ if __name__ == '__main__':
     [params, metadata, data] = reading.reading(ensembles, tech, result_root, metadata_root)
 
     #%%
-    continuum = extrapolate.continuum_extrapolation(params, metadata, data, ensembles, fitting_ranges.ranges_continuum, figure_root)
+    continuum = extrapolate.continuum_extrapolation(params, metadata, data, ensembles, fitting_ranges.ranges_continuum, continuum_correlated, figure_root)
 
     #%%
-    limits = extrapolate.flow_extrapolation(params, metadata, data, continuum, ensembles, fitting_ranges.ranges_flow, figure_root)
+    limits = extrapolate.flow_extrapolation(params, metadata, data, continuum, ensembles, fitting_ranges.ranges_flow, flow_correlated, figure_root)
 
     #%%
     with open(output_root / 'continuum_bootstrap.pckl', 'wb') as dfile: pickle.dump(continuum,dfile)
