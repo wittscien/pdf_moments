@@ -20,6 +20,17 @@ def should_update(reference_file, target_file):
 def preprocess(args, datadir, params, relist, data2, data3):
     # Do binning, resampling, folding, and shifting
     # Bin the data
+    if params['bin']:
+        bindata2 = {}
+        bindata3 = {}
+        for k in data2.keys():
+            bindata2[k] = tp.bin_data(data2[k], params['Nb'])
+        for k in data3.keys():
+            bindata3[k] = tp.bin_data(data3[k], params['Nb'])
+    else:
+        bindata2 = data2
+        bindata3 = data3
+
     relen = relist.shape[0]
     mydatadir = datadir['mydata']
     ensemble = params['ensemble']
@@ -36,7 +47,6 @@ def preprocess(args, datadir, params, relist, data2, data3):
         [file, refile] = filename('2pt', mydatadir, ensemble)
         if should_update(file, refile):
             print('Resampling 2pt...', flush=True)
-            bindata2 = data2
             redata2 = {}
             for k in bindata2.keys():
                 redata2[k] = tp.resample(bindata2[k], params['tech'], relist)
@@ -53,7 +63,6 @@ def preprocess(args, datadir, params, relist, data2, data3):
         [file, refile] = filename('3pt', mydatadir, ensemble)
         if should_update(file, refile):
             print('Resampling 3pt...', flush=True)
-            bindata3 = data3
             redata3 = {}
             for k in bindata3.keys():
                 redata3[k] = tp.resample_general(bindata3[k], params['tech'], relist)
