@@ -39,7 +39,8 @@ def fit_three(params, xR, R, metadata, result):
                     fit_n = selected['n'][k]
                     # For temp speed
                     # params['tins'] = {fit_n: {k: [0, tsep // 8]}}
-                    params['tins'] = {fit_n: {k: [0, 1]}}
+                    # params['tins'] = {fit_n: {k: [0, 1]}}
+                    params['tins'] = {fit_n: {k: [0, selected['tins'][k]]}}
                     params['tf'] = tf
                     params['tsep'] = tsep
                     params['moment'] = moment
