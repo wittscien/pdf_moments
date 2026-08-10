@@ -27,6 +27,7 @@ import fit_two
 import fit_three
 import build_R_pdf
 import quantities
+import ratio
 
 #%%
 # 2026.05.03: Fix bugs from copy and cross check.
@@ -51,8 +52,8 @@ if __name__ == '__main__':
             ensemble = 'cC211'
             tech = 'jackknife'
             plotdata = 0
-            two = 1
-            three = 1
+            two = 0
+            three = 0
             read2 = 'fast'
             read3 = 'fast'
         args = Args()
@@ -165,7 +166,15 @@ if __name__ == '__main__':
         with open('../%s/spectra/%s/results_three_%s_%s.pckl'%(datadir['mydata'],params['ensemble'],params['ensemble'],params['tech']),'rb') as dfile:
             [result_chi2dof, result_3pt] = pickle.load(dfile)
 
-     #%%
+    #%%
+    # Plot the largest-tsep result versus flow time as the final analysis step.
+    largest_tsep_ratios = ratio.largest_tsep_result(result_3pt, params['tsep_list'])
+    ratio.plot_ratio_vs_tf(largest_tsep_ratios, params['tech'], params['ensemble'], '../%s' % params['figures'])
+    with open('../%s/spectra/%s/results_three_largest_tsep_%s.pckl' % (
+            datadir['mydata'], params['ensemble'], params['tech']), 'wb') as dfile:
+        pickle.dump(largest_tsep_ratios, dfile)
+
+    #%%
 #     # Some physical quantities
 #     if options['GEVP']:
 #         quantities.quantities(params, params2, relen, result, Gresult, weight)

@@ -14,7 +14,8 @@ def build_R_pdf(params, data2, data3, metadata, result):
     for tf in range(1, nflow + 1):
         tf_GeV2 = tf * metadata['flow_dt'] * params['hca'] ** 2
         matching_coeffs[tf] = {
-            n: c_numeric(n, tf_GeV2, 2) for n in [2, 4, 5, 6, 7]
+            matching_order: c_numeric(matching_order, tf_GeV2, 2)
+            for matching_order in [2, 4, 5, 6, 7]
         }
 
     R = {}
@@ -23,12 +24,12 @@ def build_R_pdf(params, data2, data3, metadata, result):
         x[tsep] = np.arange(tsep + 1) - tsep // 2
     for k in params['key_3pt']:
         R[k] = {}
-        for n in range(3, 7):
-            R[k][n] = {}
+        for moment in range(3, 7):
+            R[k][moment] = {}
             for tf in range(nflow + 1):
-                R[k][n][tf] = {}
+                R[k][moment][tf] = {}
                 for itsep, tsep in enumerate(params['tsep_list']):
-                    R[k][n][tf][tsep] = np.zeros((relen, tsep+1))
+                    R[k][moment][tf][tsep] = np.zeros((relen, tsep+1))
 
     for k in params['key_3pt']:
         if k == 'pion':
@@ -36,7 +37,7 @@ def build_R_pdf(params, data2, data3, metadata, result):
         elif k in ['kaon', 'kaon_s']:
             k_one = 'kaon'
 
-        for n in range(3, 7):
+        for moment in range(3, 7):
             for tf in range(nflow + 1):
                 tf_GeV2 = tf * metadata['flow_dt'] * params['hca'] ** 2
 
@@ -44,14 +45,14 @@ def build_R_pdf(params, data2, data3, metadata, result):
                     for ls in range(relen):
                         m_one = tp.cal_mass(data2[k_one][ls].real,mtype='cosh',tau=params['tau'])[T//2] if result is None else result[k_one][ls][1]
 
-                        data_3pt_up = np.array(data3['%s-PDF-n_%d' % (k, n)][tsep][:,tf,:], copy=True)
-                        data_3pt_down = np.array(data3['%s-PDF-n_2' % (k)][tsep][:,tf,:] * (- m_one) ** (n - 2), copy=True)
+                        data_3pt_up = np.array(data3['%s-PDF-n_%d' % (k, moment)][tsep][:,tf,:], copy=True)
+                        data_3pt_down = np.array(data3['%s-PDF-n_2' % (k)][tsep][:,tf,:] * (- m_one) ** (moment - 2), copy=True)
                         if tf != 0:
                             data_3pt_up *= matching_coeffs[tf][2]
-                            data_3pt_down *= matching_coeffs[tf][n + 1]
+                            data_3pt_down *= matching_coeffs[tf][moment + 1]
 
                         data_3pt_up_tsep = data_3pt_up[ls]
                         data_3pt_down_tsep = data_3pt_down[ls]
-                        R[k][n][tf][tsep][ls] = data_3pt_up_tsep / data_3pt_down_tsep
+                        R[k][moment][tf][tsep][ls] = data_3pt_up_tsep / data_3pt_down_tsep
 
     return x, R

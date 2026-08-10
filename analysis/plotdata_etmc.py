@@ -85,20 +85,20 @@ def plotdata(params, data2, data3, metadata, two, three, three_pdf, xR, R, resul
 
         for k in params['key_3pt']:
             tit = r'$\mathrm{Ens}=%s \quad %s$' % (params['ensemble'], inputs.labels(k))
-            # n is the number of mu
-            for n in range(3, 7):
+            # moment is the number of mu
+            for moment in range(3, 7):
                 for tf in range(nflow + 1):
                     fig, ax = plt.subplots(1,1)
                     for itsep, tsep in enumerate(params['tsep_list']):
-                        R_now = R[k][n][tf][tsep]
+                        R_now = R[k][moment][tf][tsep]
                         mean = tp.cal_mean(R_now)
                         err = tp.cal_err(R_now,tech=params['tech'])
                         ax.errorbar(x=xR[tsep],y=mean,yerr=err,ls='-',marker='o',color=inputs.clrscm(len_tsep_list,itsep),mec=inputs.clrscm(len_tsep_list,itsep),capsize=2,fillstyle='none')
                     ax.set_xlim([-max(params['tsep_list'])//2 ,max(params['tsep_list'])//2])
                     # ax.set_ylim([-0.03, 0.03])
                     ax.set_xlabel(r'$t_j - t_{\mathrm{sep}}/2$')
-                    ax.set_ylabel(r'$\langle x^%d \rangle / \langle x \rangle$' % (n - 1))
+                    ax.set_ylabel(r'$\langle x^%d \rangle / \langle x \rangle$' % (moment - 1))
                     ax.set_title(tit)
                     Path('../%s/%s/'%(params['figures'],figdir)).mkdir(parents=True, exist_ok=True)
-                    plt.savefig('../%s/%s/R_x%d_x2_tf_%d_%s_%s.pdf'%(params['figures'],figdir,n,tf,k,sv),transparent=True)
+                    plt.savefig('../%s/%s/R_x%d_x2_tf_%d_%s_%s.pdf'%(params['figures'],figdir,moment,tf,k,sv),transparent=True)
                     tp.show_in_spyder()

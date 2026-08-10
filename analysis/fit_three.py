@@ -19,19 +19,19 @@ def fit_three(params, xR, R, metadata, result):
         result_3pt_chi2dof[k] = {}
         result_3pt[k] = {}
         result_stability[k] = {}
-        for n in range(3, 7):
-            result_3pt_chi2dof[k][n] = {}
-            result_3pt[k][n] = {}
-            result_stability[k][n] = {}
+        for moment in range(3, 7):
+            result_3pt_chi2dof[k][moment] = {}
+            result_3pt[k][moment] = {}
+            result_stability[k][moment] = {}
             for tf in range(nflow + 1):
-                result_3pt_chi2dof[k][n][tf] = {}
-                result_3pt[k][n][tf] = {}
-                result_stability[k][n][tf] = {}
+                result_3pt_chi2dof[k][moment][tf] = {}
+                result_3pt[k][moment][tf] = {}
+                result_stability[k][moment][tf] = {}
                 params['stability'] = {}
                 for tsep in params['tsep_list']:
-                    print('  n=%d, tf=%d, tsep=%d' % (n,tf,tsep))
+                    print('  moment=%d, tf=%d, tsep=%d' % (moment,tf,tsep))
                     middle = tsep // 2
-                    prior = {'C': R[k][n][tf][tsep][0][middle]}
+                    prior = {'C': R[k][moment][tf][tsep][0][middle]}
                     params['mtype'] = mtype = 'const'
                     params['prior'] = [prior['C']]
 
@@ -42,22 +42,22 @@ def fit_three(params, xR, R, metadata, result):
                     params['tins'] = {fit_n: {k: [0, 1]}}
                     params['tf'] = tf
                     params['tsep'] = tsep
-                    params['moment'] = n
-                    R_onlyone = {k: np.copy(R[k][n][tf][tsep])}
+                    params['moment'] = moment
+                    R_onlyone = {k: np.copy(R[k][moment][tf][tsep])}
                     result_chi2dof, result_good = tp.fitting_3pt(prior,params,R_onlyone,mtype,selected,correlated=True)
 
-                    result_3pt_chi2dof[k][n][tf][tsep] = result_chi2dof
-                    result_3pt[k][n][tf][tsep] = result_good
-                    result_stability[k][n][tf][tsep] = params['stability'][k]
+                    result_3pt_chi2dof[k][moment][tf][tsep] = result_chi2dof
+                    result_3pt[k][moment][tf][tsep] = result_good
+                    result_stability[k][moment][tf][tsep] = params['stability'][k]
 
                 params_plot = dict(params)
-                params_plot['moment'] = n
+                params_plot['moment'] = moment
                 selected_plot = {'n': {k: fit_range[k][0]}, 'tins': {k: fit_range[k][1]}}
-                data_plot = {tsep: R[k][n][tf][tsep] for tsep in params['tsep_list']}
-                result_plot = {tsep: result_3pt[k][n][tf][tsep] for tsep in params['tsep_list']}
-                stability_plot = {tsep: result_stability[k][n][tf][tsep] for tsep in params['tsep_list']}
-                chi2_plot = {tsep: result_3pt_chi2dof[k][n][tf][tsep] for tsep in params['tsep_list']}
-                tp.plot_stability_3pt(k,params_plot,selected_plot,stability_plot,chi2_plot,tit=r'$\mathrm{Ens}=%s \quad %s$'%(params['ensemble'],inputs.labels(k)),sv='%s_%s_n%d_tf%d'%(three_name,k,n,tf),figdir='fit_three/%s'%(three_dir))
-                tp.plot_result_3pt(k,data_plot,params_plot,selected_plot,result_plot,tit=r'$\mathrm{Ens}=%s \quad %s$'%(params['ensemble'],inputs.labels(k)),sv='%s_%s_n%d_tf%d'%(three_name,k,n,tf),figdir='fit_three/%s'%(three_dir))
+                data_plot = {tsep: R[k][moment][tf][tsep] for tsep in params['tsep_list']}
+                result_plot = {tsep: result_3pt[k][moment][tf][tsep] for tsep in params['tsep_list']}
+                stability_plot = {tsep: result_stability[k][moment][tf][tsep] for tsep in params['tsep_list']}
+                chi2_plot = {tsep: result_3pt_chi2dof[k][moment][tf][tsep] for tsep in params['tsep_list']}
+                tp.plot_stability_3pt(k,params_plot,selected_plot,stability_plot,chi2_plot,tit=r'$\mathrm{Ens}=%s \quad %s$'%(params['ensemble'],inputs.labels(k)),sv='%s_%s_moment%d_tf%d'%(three_name,k,moment,tf),figdir='fit_three/%s'%(three_dir))
+                tp.plot_result_3pt(k,data_plot,params_plot,selected_plot,result_plot,tit=r'$\mathrm{Ens}=%s \quad %s$'%(params['ensemble'],inputs.labels(k)),sv='%s_%s_moment%d_tf%d'%(three_name,k,moment,tf),figdir='fit_three/%s'%(three_dir))
 
     return result_3pt_chi2dof, result_3pt
