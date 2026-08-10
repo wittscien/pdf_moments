@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import least_squares
 import funcs as tp
-import inputs
 from flow_matching import c_numeric
 
 
@@ -111,7 +110,6 @@ def continuum_extrapolation(params, metadata, data, ensembles, fit_range, correl
                 axis.fill_between(fit_x,fit_mean-fit_err,fit_mean+fit_err,color=fit_color,alpha=0.20,edgecolor='none')
                 axis.fill_between(fit_x[fit_mask],fit_mean[fit_mask]-fit_err[fit_mask],fit_mean[fit_mask]+fit_err[fit_mask],color=fit_color,alpha=0.45,edgecolor='none')
                 axis.errorbar([0],[continuum_mean],yerr=[continuum_err],marker='s',markersize=6,color='k',capsize=2)
-                axis.set_title(r'$t_f/t_0=%.3g$' % result_now['t_over_t0'])
                 axis.set_xlabel(r'$a^2/t_0$')
                 axis.set_ylabel(r'$\langle x^{%d}\rangle/\langle x\rangle$' % (moment - 1))
                 ymin = min(np.min(mean-err),np.min(fit_mean-fit_err),continuum_mean-continuum_err)
@@ -123,7 +121,6 @@ def continuum_extrapolation(params, metadata, data, ensembles, fit_range, correl
                 axis.spines['right'].set_visible(False)
             for axis in axes[len(tf_list):]:
                 axis.axis('off')
-            fig.suptitle(r'$%s\quad \mathrm{continuum}$' % inputs.labels(k))
             fig.tight_layout()
             fig.savefig(figdir / ('ratio_%s_moment%d.pdf' % (k,moment)),transparent=True)
             tp.show_in_spyder()
@@ -195,16 +192,15 @@ def flow_extrapolation(params, metadata, data, continuum, ensembles, fit_range, 
             ax.errorbar([0],[limit_mean],yerr=[limit_err],marker='P',markersize=7,color='k',capsize=2,label=r'$t_f\to 0$',zorder=4)
             ax.set_xlabel(r'$t_f/t_0$')
             ax.set_ylabel(r'$\langle x^{%d}\rangle/\langle x\rangle$' % (moment - 1))
-            ax.set_title(r'$%s\quad \mathrm{continuum}$' % inputs.labels(k))
             # Set the y range from the fit region so noisy unused points do not compress the plot
             ymin = min(np.min(ensemble_mean[:,fit_index]-ensemble_err[:,fit_index]),np.min(mean[fit_index]-err[fit_index]),np.min(fit_mean-fit_err),limit_mean-limit_err)
             ymax = max(np.max(ensemble_mean[:,fit_index]+ensemble_err[:,fit_index]),np.max(mean[fit_index]+err[fit_index]),np.max(fit_mean+fit_err),limit_mean+limit_err)
-            ypad = 0.05 * max(ymax - ymin, np.finfo(float).eps)
-            ax.set_ylim([ymin - ypad, ymax + ypad])
+            yrange = max(ymax - ymin, np.finfo(float).eps)
+            ax.set_ylim([ymin - 0.15 * yrange, ymax + 0.35 * yrange])
             ax.tick_params(axis='both', direction='in')
             ax.spines['top'].set_visible(False)
             ax.spines['right'].set_visible(False)
-            ax.legend(frameon=False,ncol=2,fontsize=8)
+            ax.legend(frameon=False,ncol=2,fontsize=8,loc='upper right')
             fig.tight_layout()
             fig.savefig(figdir / ('ratio_%s_moment%d.pdf' % (k,moment)),transparent=True)
             tp.show_in_spyder()
