@@ -1,0 +1,405 @@
+\documentclass[10pt]{article}
+\usepackage{pgm2016}
+\usepackage{amsmath}
+\usepackage{dsfont}
+\usepackage{bm}
+\usepackage{mdframed}
+\usepackage{dcolumn}
+\usepackage{graphicx,amsmath,amssymb,soul,bbm,dcolumn,booktabs, multirow,array,float,enumitem,lmodern,dsfont,microtype,nicefrac,tabularx}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage[
+    left=1cm,
+    right=1cm,
+    top=2cm,
+    bottom=2cm,
+    marginparwidth=8cm]{geometry}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\definecolor{Green}{RGB}{0,120,0}
+\colorlet{green}{Green}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\thepage}
+\lhead[\tiny \rightmark]{\rightmark}
+\rhead{\bf \nameref{toc}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% REFS COLORS -- https://www.overleaf.com/project/5f51f95f9556910001a94565
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    urlcolor=blue,
+    linkcolor = blue,
+    urlcolor  = blue,
+    citecolor = blue,
+    anchorcolor = blue}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{cleveref} %use \cref{}
+    \crefformat{figure}{Fig.~#2#1#3}
+    \crefformat{table}{Tab.~#2#1#3}
+    \crefformat{equation}{Eq.~(#2#1#3)}
+    \crefformat{section}{Sect.~#2#1#3}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newmdtheoremenv{boxtheorem}{Note}
+\renewcommand{\Re}{{\rm Re}}
+\renewcommand{\Im}{{\rm Im}}
+\newcommand{\MeV}{{\rm MeV}}
+\newcommand{\GeV}{{\rm GeV}}
+\newcommand{\fm}{{\rm fm}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\com}[2]{
+    {
+    \color{red}
+    {[!]}{\footnote{{\color{red}{#2}~~(#1)}}}
+    }
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\circplus}{\mathbin{\ooalign{$\oplus$\cr\hidewidth$\circ$\hidewidth}}}
+\title{PDF moments}
+\author{
+~\\
+\name Haobo Yan (\begin{CJK*}{UTF8}{gbsn}燕浩波\end{CJK*})
+\email haobo@stu.pku.edu.cn \\
+\addr Institute of Theoretical Physics, School of Physics, Peking University
+}
+\firstpageno{1}
+\allowdisplaybreaks
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\tikzset{global scale/.style={
+    scale=#1,
+    every node/.append style={scale=#1}
+  }
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+\maketitle
+{\footnotesize
+\tableofcontents\label{toc}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+
+\clearpage
+
+\section{Introduction}
+From [Francis] POS 2024. Moments of PDFs are related to hadronic matrix elements of local operators. In the non-singlet case, the dominant contribution at large $4$-momentum transfer to the nucleon, $Q^2=-q^2$, as seen in DIS experiments, comes from twist-2 operators
+\begin{equation}
+O_n^{rs}(x) = O^{rs}_{\left\{\mu_1 \cdots \mu_n\right\}}(x) = \bar{\psi}^r(x) \gamma_{\left\{ \mu_1 \right.} \overleftrightarrow{\nabla}_{\mu_2} \cdots \overleftrightarrow{\nabla}_{\left. \mu_n \right\}} \psi^s(x),
+\label{eq:t2}
+\end{equation}
+where $\left\{ \mu_1 \cdots \mu_n\right\}$ indicates normalized symmetrization over the Lorentz indices
+\begin{equation}
+O^{rs}_{\{\mu_1 \cdots \mu_n\}}=\frac{1}{n!}\sum_{\sigma\in\text{permutations}}O^{rs}_{\mu_{\sigma(1)}...\mu_{\sigma(n)}}.
+\end{equation}
+To avoid complications with mixing with gluonic operators, we focus on the non-singlet case $r \neq s$.
+For unpolarized targets, these operators are directly related to the moments of PDFs of the hadron $h$ 
+\begin{equation}
+\langle h(p)| \widehat{O}_n |h(p) \rangle = 2
+\left( p_{\mu_1} \cdots p_{\mu_n} - \text{trace~terms}\right) \langle x^{n-1} \rangle_h(\mu),
+\label{eq:matrix}
+\end{equation}
+where $\widehat{O}_n$ denotes the twist-2 operators with trace terms subtracted. The energy scale $\mu$ represents the renormalization scale of the local operators~\eqref{eq:t2}.
+
+The flowed operators are defined as
+\begin{equation}
+O_n^{rs}(x) = O^{rs}_{\left\{\mu_1 \cdots \mu_n\right\}}(x) = \mathring{\bar{\chi}}^r(x) \gamma_{\left\{ \mu_1 \right.} \overleftrightarrow{\nabla}_{\mu_2} \cdots \overleftrightarrow{\nabla}_{\left. \mu_n \right\}} \mathring{\chi}^s(x),
+\label{eq:flowed_t2}
+\end{equation}
+where we use the ringed fields ${\mathring{\chi}}$ and ${\mathring{\bar{\chi}}}$, defined by the gauge-invariant condition
+\begin{equation}
+\langle \mathring{\bar{\chi}}(x,t) \overleftrightarrow{\slashed{\nabla}} \mathring{\chi}(x,t) \rangle = - \frac{N_c}{(4 \pi)^2 t^2}.
+\end{equation}
+It is regularization independent and can be adopted both in perturbation theory and non-perturbatively in lattice QCD simulations.
+
+After taking the continuum limit at a fixed flow time $t > 0$, the physical renormalized matrix element at $t = 0$ can be determined using the short flow time expansion. Generally, the SFTX for twist-2 operators $O_n(x,t)$ includes power-divergent terms, where the divergence depends on the dimensions of the operator and those of the lower-dimensional operators with the same symmetry properties. These terms, however, are classified according to continuum O($4$) symmetry. Traceless operators with symmetrized Lorentz indices belong to an irreducible representation of $\mathrm{O}(4)$, and as a result, their SFTX reads
+\begin{equation}
+\widehat{\mathring{O}}_n^{rs}(t) = c_n(t,\mu)\widehat{O}_{n,\mathrm{MS}}^{rs}(\mu) + \cdots,
+\label{eq:sftx}
+\end{equation}
+where contributions at $t = 0$ come exclusively from the corresponding traceless operators, which are directly related to the moments of PDFs. The operator $\widehat{\mathring{O}}_n^{rs}(t)$ is defined as Eq,~\eqref{eq:flowed_t2}, using ringed fermion fields, and the operator at $t=0$ is renormalized in the same scheme adopted for the calculation of the matching coefficients, $c_n(t,\mu)$.
+
+The traceless operators are
+\begin{equation}
+\begin{aligned}
+\widehat{\mathring{O}}_{n=2}&=\mathring{O}_{44}-\frac{1}{3}\sum_{i=1}^3\mathring{O}_{ii},\\
+\widehat{\mathring{O}}_{n=3} &= \mathring{O}_{444}-\frac{1}{3}\sum_{i=1}^3(\mathring{O}_{ii4}+\mathring{O}_{i4i}+\mathring{O}_{4ii}), \\
+\widehat{\mathring{O}}_{n=4} &= \mathring{O}_{4444}+\frac{1}{5}\sum_{i=1}^3 \mathring{O}_{iiii}+\frac{1}{15}\sum_{i,j=1,j>i}^3 (\mathring{O}_{iijj}+\mathring{O}_{ijij}+\mathring{O}_{ijji}+\mathring{O}_{jjii}+\mathring{O}_{jiji}+\mathring{O}_{jiij}) \\
+&-\frac{1}{3}\sum_{i=1}^3 (\mathring{O}_{ii44}+\mathring{O}_{i4i4}+\mathring{O}_{i44i}+\mathring{O}_{44ii}+\mathring{O}_{4i4i}+\mathring{O}_{4ii4}).
+\end{aligned}
+\label{eq:O4444} 
+\end{equation}
+Using Lorentz symmetry and converting to a Euclidean metric the parametrization of the matrix elements is then given by 
+\begin{equation}
+\begin{aligned}
+A^{\mathrm{MS}}_{n=2}(\mu) & =-2 m_\pi^2 \langle {x}^{\mathrm{MS}}(\mu) \rangle, \\ 
+A^{\mathrm{MS}}_{n=3}(\mu) & =~2 m_\pi^3 \langle {x^2}^{\mathrm{MS}}(\mu) \rangle, \\
+A^{\mathrm{MS}}_{n=4}(\mu) & =- 2 m_\pi^4 \langle {x^3}^{\mathrm{MS}}(\mu) \rangle.
+\end{aligned}
+\end{equation}
+
+The matching coefficients at NLO reads
+\begin{equation}
+c_n(t,\mu) =  1 + \frac{\bar{g}^2(\mu)}{(4 \pi)^2}c_n^{(1)}(t,\mu) + 
+O(\bar{g}^4).
+\label{eq:cn_1l}
+\end{equation}
+where $\bar{g}^2(\mu)$ is the renormalized strong coupling in the $\mathrm{MS}$ scheme. The one-loop coefficient is given by
+\begin{equation}
+c_n^{(1)}(t,\mu) = C_F \left[ \gamma_n \log \left(8 \pi \mu^2 t \right) + B_n\right],
+\label{eq:matching_1l}
+\end{equation}
+where $\gamma_n = 1 + 4 \sum_{j=2}^n \frac{1}{j} - \frac{2}{n(n+1)}$ and the finite part is given by 
+\begin{equation}
+\begin{aligned}
+B_n &= \frac{4}{n(n+1)} + 4 \frac{n-1}{n}\log 2 + \frac{2-4 n^2}{n(n+1)}\gamma_E - \frac{2}{n(n+1)}\psi(n+2) + \frac{4}{n}\psi(n+1) - 4 \psi(2) \nonumber \\
+&- 4 \sum_{j=2}^n \frac{1}{j(j-1)} \frac{1}{2^j} \phi(1/2,1,j) - \log \left(432\right) \\
+B_n &= \frac{2-4n^2(n+2)}{n(n+1)^2} + \frac{2(2n+1)}{n(n+1)}H_n - \frac{4}{n} \log(2) - 3 \log(3) - 4 \sum_{j=2}^n \frac{1}{j(j-1)} \frac{1}{2^j} \phi(1/2,1,j),
+\end{aligned}
+\label{eq:finite}
+\end{equation} 
+where $\phi(z,s,a)$ is the Lerch transcendent and $\psi(z)$ is the digamma functionm and $H_n$ is the harmonic number.
+
+The same matching coefficients in the $\overline{\mathrm{MS}}$ scheme are obtained with the substitution $\mu^2\rightarrow \mu^2 e^{\gamma_E}/4\pi$.
+
+Ratios of flowed correlators with the same number of fermion fields can be analyzed. For example, using the second moment, $\langle x \rangle_{\mathrm{MS}}$, as an input observable, we can determine all the other moments with
+\begin{equation}
+\langle x^{n-1} \rangle^{\mathrm{MS}}_h(\mu) = 
+\langle x \rangle^{\mathrm{MS}}_h(\mu)
+\frac{c_{2}(t,\mu)}{c_n(t,\mu)} R_n^h(t),
+\label{eq:ratio_n2}
+\end{equation}
+where the ratios 
+\begin{equation}
+R_n^h(t) = \frac{\langle x^{n-1} \rangle_{h}(t)}{\langle x\rangle_{h}(t)},
+\quad n>2,
+\label{eq:Rn}
+\end{equation}
+are computed with bare fields and have a finite continuum limit.
+
+
+
+\section{Contractions}
+\subsection{Two-point functions}
+For two-point functions,
+\begin{equation}
+C^2(t_x;0) = \sum_{\vec{x}} \langle O (x) O^{\dagger}(0) \rangle = \sum_{\vec{x}}
+\raisebox{-0.32\height}{\begin{tikzpicture}
+    \node[label = left:{\scriptsize $\bar{d} \Omega u(x)$}, inner sep=0pt] (sink1) at (0, 0) {};
+    \node[label = right:{\scriptsize $\eta^4_{\Gamma} \bar{u} \Gamma d(0)$}, inner sep=0pt] (source1) at (1.618, 0) {};
+    \draw[thin, -Stealth, out=150, in=30] (source1) to (sink1);
+    \draw[thin, -Stealth, out=330, in=210] (sink1) to (source1);
+    \node[font = \scriptsize, anchor = south] at (0.809, 0.15) {u};
+    \node[font = \scriptsize, anchor = south] at (0.809, -0.35) {d};
+\end{tikzpicture}},
+\end{equation}
+where the interpolator $O(x) = \bar{d}(x) \Omega u(x)$ and $O^{\dagger}(x) = \eta^4_{\Gamma} \bar{u}(x) \Gamma d(x)$. Therefore,
+\begin{equation}
+\begin{aligned}
+    C^2(t_x;0) &= -\eta^4_{\Gamma} \sum_{\vec{x}} \operatorname{Tr} [\Gamma S_d(0;x) \Omega S_u(x;0)] \\
+    &= -\eta^4_{\Gamma} \sum_{\vec{x}} \operatorname{Tr} [\Gamma \gamma_5 S_u^{\dagger}(x;0) \gamma_5 \Omega S_u(x;0)] \\
+    &\xrightarrow{\pi} \sum_{\vec{x}} \sum_{\beta \alpha ba} |S_u(x;0)_{\substack{\beta\alpha \\ ba}}|^2,
+\end{aligned}
+\end{equation}
+where for pion the minus signs from daggering and trace canceled. We have also respected the twisted-mass light flavor.
+
+
+
+\subsection{Three-point functions}
+Moments of PDFs are related to the connected 3-point function, projected to vanishing spatial momentum. For $\pi^-$ it is given by 
+\begin{equation}
+C_{\pi,n}^3(t_x;t_y;0|t_f) = \sum_{\vec{y}\vec{x}} \langle O (x) \widehat{\mathring{O}}_n(y|t_f) O^{\dagger}(0) \rangle = 
+\sum_{\vec{x}}
+\raisebox{-0.32\height}{\begin{tikzpicture}
+    \node[label = left:{\scriptsize $\bar{d} \Omega u(x)$}, inner sep=0pt] (sink1) at (0, 0) {};
+    \node[label = right:{\scriptsize $\eta^4_{\Gamma} \bar{u} \Gamma d(0)$}, inner sep=0pt] (source1) at (1.618, 0) {};
+    \node[star, star points=5, star point ratio=2.25, draw=black, fill=black!50, inner sep=0pt, minimum size=2mm] (ins1) at (0.809, 0.25) {};
+    \node[font = \scriptsize, anchor = south] at (0.809, -0.15) {y};
+    \draw[thin, -Stealth, out=150, in=30] (source1) to (sink1);
+    \draw[thin, -Stealth, out=330, in=210] (sink1) to (source1);
+    \node[font = \scriptsize, anchor = south] at (1.618*0.25, 0.12) {u};
+    \node[font = \scriptsize, anchor = south] at (1.618*0.75, 0.12) {u};
+    \node[font = \scriptsize, anchor = south] at (0.809, -0.35) {d};
+\end{tikzpicture}}.
+\end{equation}
+For $K^+$ with $u$ insertion, it is
+\begin{equation}
+C_{K,u,n}^3(t_x;t_y;0|t_f) = \sum_{\vec{x}}
+\raisebox{-0.32\height}{\begin{tikzpicture}
+    \node[label = left:{\scriptsize $\bar{s} \Omega u(x)$}, inner sep=0pt] (sink1) at (0, 0) {};
+    \node[label = right:{\scriptsize $\eta^4_{\Gamma} \bar{u} \Gamma s(0)$}, inner sep=0pt] (source1) at (1.618, 0) {};
+    \node[star, star points=5, star point ratio=2.25, draw=black, fill=black!50, inner sep=0pt, minimum size=2mm] (ins1) at (0.809, 0.25) {};
+    \node[font = \scriptsize, anchor = south] at (0.809, -0.15) {y};
+    \draw[thin, -Stealth, out=150, in=30] (source1) to (sink1);
+    \draw[thin, -Stealth, out=330, in=210] (sink1) to (source1);
+    \node[font = \scriptsize, anchor = south] at (1.618*0.25, 0.12) {u};
+    \node[font = \scriptsize, anchor = south] at (1.618*0.75, 0.12) {u};
+    \node[font = \scriptsize, anchor = south] at (0.809, -0.35) {s};
+\end{tikzpicture}}.
+\end{equation}
+For kaons, we use OS action. The minimal change is from $\pi^-$ to $K^+$, namely changing down to strange quark. For 2pt, the down quark from sink to source was up quark from source to sink and g5-daggered, for kaon it should use the strange quark mass, but the upper component of the doublet (pretend to be a charm quark) $S_{sup}$.
+
+For 3pt with $u$ insertion, the sequential propagator is instead of $\Sigma \sim S_d S_u$ but $\Sigma \sim S_d S_{sup}$. The real strange propagator is never used in this calculation.
+
+For $s$ insertion, it is 
+\begin{equation}
+C_{K,s,n}^3(t_x;t_y;0|t_f) = \sum_{\vec{x}}
+\raisebox{-0.32\height}{\begin{tikzpicture}
+    \node[label = left:{\scriptsize $\bar{s} \Omega u(x)$}, inner sep=0pt] (sink1) at (0, 0) {};
+    \node[label = right:{\scriptsize $\eta^4_{\Gamma} \bar{u} \Gamma s(0)$}, inner sep=0pt] (source1) at (1.618, 0) {};
+    \node[star, star points=5, star point ratio=2.25, draw=black, fill=black!50, inner sep=0pt, minimum size=2mm] (ins1) at (0.809, -0.25) {};
+    \node[font = \scriptsize, anchor = south] at (0.809, -0.25) {y};
+    \draw[thin, -Stealth, out=150, in=30] (source1) to (sink1);
+    \draw[thin, -Stealth, out=330, in=210] (sink1) to (source1);
+    \node[font = \scriptsize, anchor = south] at (1.618*0.25, -0.25) {s};
+    \node[font = \scriptsize, anchor = south] at (1.618*0.75, -0.25) {s};
+    \node[font = \scriptsize, anchor = south] at (0.809, 0.19) {u};
+\end{tikzpicture}}.
+\end{equation}
+
+The twist-2 operators for generic $n$ and generic Lorentz indices are $\mathring{\bar{\chi}}^u(y|t_f) \Gamma_n \mathring{\chi}^u(y|t_f)$ denoted with $\Gamma_n(y|t_f) = \gamma_{\mu_1} \overleftrightarrow{\nabla}_{\mu_2} \cdots \overleftrightarrow{\nabla}_{\mu_n}$.
+
+Therefore,
+\begin{equation}
+    C_{\pi,n}^3(t_x;t_y;0|t_f) = -\eta^4_{\Gamma} \sum_{\vec{y}\vec{x}} \operatorname{Tr} [\Gamma S_d(0;x) \Omega (\sum_{w} S_u(x;w) K^{\dagger}(y;w|t_f;0)) \Gamma_n(y,t_f) (\sum_{v} K(y;v|t_f;0) S_u(v;0)) ].
+\end{equation}
+\begin{equation}
+    C_{K,s,n}^3(t_x;t_y;0|t_f) = -\eta^4_{\Gamma} \sum_{\vec{y}\vec{x}} \operatorname{Tr} [\Gamma (\sum_{w} S_s(0;w) K^{\dagger}(y;w|t_f;0)) \Gamma_n(y,t_f) (\sum_{v} K(y;v|t_f;0) S_s(v;x)) \Omega S_u(x;0) ].
+\end{equation}
+Define the flowed propagator
+\begin{equation}
+    S_u(y;0|t_f;0) = \sum_{v} K(y;v|t_f;0) S_u(v;0).
+\end{equation}
+Define the sequential propagator
+\begin{equation}
+    \Sigma_{t_s}^{du}(y;0) = \sum_{\vec{x}} S_d(y;x) \Omega S_u(x;0),
+\end{equation}
+which is solved from the sequential source $\phi = \Omega S_u(x;0) \delta_{t_s t_x}$. The sequestial propagator could be forward-flowed,
+\begin{equation}
+    \Sigma_{t_s}^{du}(y;0|t_f) = \sum_{w} K(y;w|t_f;0) \Sigma^{t_s}(w;0) = \sum_{w\vec{x}} K(y;w|t_f;0) S_d(w;x) \Omega S_u(x;0),
+\end{equation}
+and reverted,
+\begin{equation}
+\begin{aligned}
+    \Sigma_{t_s}^{du\dagger}(y;0|t_f) &= \sum_{w\vec{x}} S_u^{\dagger}(x;0) \Omega^{\dagger} S_d^{\dagger}(w;x) K^{\dagger}(y;w|t_f;0) \\
+    &= \sum_{w\vec{x}} \gamma_5 S_d(0;x) \gamma_5 \Omega^{\dagger} \gamma_5 S_u(x;w) \gamma_5 K^{\dagger}(y;w|t_f;0) \\
+    &= \eta^5_{\Omega} \sum_{w\vec{x}} \gamma_5 S_d(0;x) \Omega S_u(x;w) K^{\dagger}(y;w|t_f;0) \gamma_5.
+\end{aligned}
+\end{equation}
+The last step is because GF cannot see Dirac.
+
+As a result, for pion,
+\begin{equation}
+\begin{aligned}
+    C_{\pi,n}^3(t_x;t_y;0|t_f) &= -\eta^4_{\Gamma} \eta^5_{\Omega} \sum_{\vec{y}} \operatorname{Tr} [\Gamma \gamma_5 \Sigma_{t_s}^{du\dagger}(y;0|t_f) \gamma_5 \Gamma_n(y,t_f) S_u(y;0|t_f;0) ] \\
+    &\xrightarrow{\pi} \sum_{\vec{y}} \operatorname{Tr} [\Sigma_{t_s}^{du\dagger}(y;0|t_f) \gamma_5 \Gamma_n(y,t_f) S_u(y;0|t_f;0) ].
+\label{eq:3pt}
+\end{aligned}
+\end{equation}
+
+For kaon with $s$ insertion, we revert the other propagator,
+\begin{equation}
+    S_{s^+}^{\dagger}(y;0|t_f;0) = \sum_{v} S_{s^+}^{\dagger}(v;0) K^{\dagger}(y;v|t_f;0) = \sum_{v} \gamma_5 S_s(0;v) \gamma_5 K^{\dagger}(y;v|t_f;0).
+\end{equation}
+
+
+\begin{equation}
+\begin{aligned}
+    C_{K,s,n}^3(t_x;t_y;0|t_f) &= -\eta^4_{\Gamma} \sum_{\vec{y}} \operatorname{Tr} [\Gamma \gamma_5 S_{s^+}^{\dagger}(y;0|t_f;0) \gamma_5 \Gamma_n(y,t_f) \Sigma_{t_s}^{su}(y;0|t_f) ] \\
+    &\xrightarrow{K} \sum_{\vec{y}} \operatorname{Tr} [S_{s^+}^{\dagger}(y;0|t_f;0) \gamma_5 \Gamma_n(y,t_f) \Sigma_{t_s}^{su}(y;0|t_f) ].
+\label{eq:3pt}
+\end{aligned}
+\end{equation}
+
+
+
+\subsection{Three-point functions with non-local insertions}
+From the coupled-channel $D\pi$ project, we have the definition of the covariant derivatives,
+\begin{equation}
+\begin{aligned}
+    O_{\Gamma \nabla_{\mu}}(\vec{p}, t) &= \sum_{\vec{x}} \bar{\phi}(\vec{x}) \Gamma \overleftrightarrow{\nabla}_{\mu} \psi(\vec{x}) \operatorname{e}^{-i\vec{p}\cdot\vec{x}} \\
+    &\equiv \sum_{\vec{x} \vec{y}} \bar{\phi}(\vec{x}) \Gamma \overleftrightarrow{\nabla}_{\mu}(\vec{x}, \vec{y}) \psi(\vec{y}) \operatorname{e}^{-i\vec{p}\cdot\vec{v}} \\
+    &\equiv \frac{1}{2} \sum_{\vec{x} \vec{y}} \bar{\phi}(\vec{x}) \Gamma \overrightarrow{\nabla}_{\mu}(\vec{x}, \vec{y}) \psi(\vec{y}) \operatorname{e}^{-i\vec{p}\cdot\vec{x}} - \bar{\phi}(\vec{x}) \Gamma \overleftarrow{\nabla}_{\mu}(\vec{x}, \vec{y}) \psi(\vec{y}) \operatorname{e}^{-i\vec{p}\cdot\vec{y}} \\
+    &= \frac{1}{4} \sum_{\vec{x}} \left[ \bar{\phi}(\vec{x}) \Gamma U_{\mu}(\vec{x}) \psi(\vec{x}+\hat{\mu}) - \bar{\phi}(\vec{x}) \Gamma U_{\mu}^{\dagger}(\vec{x}-\hat{\mu}) \psi(\vec{x}-\hat{\mu}) \right. \\
+    &\left. - \bar{\phi}(\vec{x}+\hat{\mu}) \Gamma U_{\mu}^{\dagger}(\vec{x})\psi(\vec{x}) + \bar{\phi}(\vec{x}-\hat{\mu}) \Gamma U_{\mu}(\vec{x}-\hat{\mu}) \psi(\vec{x}) \right] \operatorname{e}^{-i\vec{p}\cdot\vec{x}} \\
+    &\equiv \frac{1}{4} \sum_{\vec{x}} \left[ O_{\Gamma \nabla_{\mu}}^1(\vec{x}, t) + O_{\Gamma \nabla_{\mu}}^2(\vec{x}, t) + O_{\Gamma \nabla_{\mu}}^3(\vec{x}, t) + O_{\Gamma \nabla_{\mu}}^4(\vec{x}, t) \right]. \\
+\end{aligned}
+\end{equation}
+
+If $\vec{p}=0$ and $\mu \neq t$,
+\begin{equation}
+    O_{\Gamma \nabla_{i}}(\vec{p}, t) = \frac{1}{2} \sum_{\vec{x}} \left[ O_{\Gamma \nabla_{\mu}}^1(\vec{x}, t) + O_{\Gamma \nabla_{\mu}}^2(\vec{x}, t) \right],
+\end{equation}
+but if $\mu = t$, we can get the other two terms by shifting, \textit{i.e.}
+\begin{equation}
+\begin{aligned}
+    O_{\Gamma \nabla_{t}}(\vec{0}, t) &= \frac{1}{4} \sum_{\vec{x}} \left[ O_{\Gamma \nabla_{t}}^1(\vec{x}, t) + O_{\Gamma \nabla_{t}}^2(\vec{x}, t) + O_{\Gamma \nabla_{t}}^3(\vec{x}, t) + O_{\Gamma \nabla_{t}}^4(\vec{x}, t) \right] \\
+    &= \frac{1}{4} \sum_{\vec{x}} \left[ O_{\Gamma \nabla_{t}}^1(\vec{x}, t) + O_{\Gamma \nabla_{t}}^2(\vec{x}, t) + O_{\Gamma \nabla_{t}}^2(\vec{x}, t+1) + O_{\Gamma \nabla_{t}}^1(\vec{x}, t-1) \right]. \\
+\end{aligned}
+\end{equation}
+
+Instead of calculating the desired three-point function from brute-force, we could then define
+\begin{equation}
+    C_{\mu_1 \cdots \mu_n}^{3, d_2 \cdots d_n}(t_x;t_y;0|t_f) = \sum_{\vec{y}\vec{x}} \langle O (x) \mathring{Q}_{\mu_1 \cdots \mu_n}^{d_2 \cdots d_n}(y|t_f) O^{\dagger}(0) \rangle,
+\end{equation}
+where the auxiliary operator
+\begin{equation}
+    \mathring{Q}_{\mu_1 \cdots \mu_n}^{d_2 \cdots d_n}(y|t_f) = \mathring{\bar{\chi}}^u(y|t_f) \gamma_{\mu_1} V_{\mu_2}^{d_2}(y) V_{\mu_3}^{d_3}(y+d_2\hat{\mu}_2) \cdots V_{\mu_n}^{d_n} (y + \sum_{m=2}^{n-1}d_m \hat{\mu}_m|t_f) \mathring{\chi}^u(y + \sum_{m=2}^n d_m \hat{\mu}_m|t_f),
+\end{equation}
+and I have defined
+\begin{equation}
+\begin{aligned}
+    V_{\mu}^{1}(y) &= U_{\mu}(y), \\
+    V_{\mu}^{-1}(y) &= -U_{-\mu}(y) = - U_{\mu}^{\dagger}(y-\hat{\mu}), \\
+\end{aligned}
+\end{equation}
+where I have used $U_{-\mu}(x) \equiv U_{\mu}^{\dagger}(x-\hat{\mu})$. Contracting, we get from Eq.~\ref{eq:3pt},
+\begin{equation}
+\begin{aligned}
+    C_{\mu_1 \cdots \mu_n}^{3, d_2 \cdots d_n}(t_x;t_y;0|t_f) &= -\eta^4_{\Gamma} \eta^5_{\Omega} \sum_{\vec{y}} \operatorname{Tr} [\Gamma \gamma_5 \Sigma_{t_s}^{du\dagger}(y;0|t_f) \gamma_5 \left[ \gamma_{\mu_1} V_{\mu_2}^{d_2}(y) V_{\mu_3}^{d_3}(y+d_2\hat{\mu}_2) \cdots V_{\mu_n}^{d_n}(y + \sum_{m=2}^{n-1} d_m \hat{\mu}_m) \right] S_u(y + \sum_{m=2}^n d_m \hat{\mu}_m;0|t_f;0) ]. \\
+\end{aligned}
+\end{equation}
+The desired three-point function could be assembled from $C_{\mu_1 \cdots \mu_n}^{3, d_2 \cdots d_n}(t_x;t_y|t_f)$ by
+\begin{equation}
+    C_n^3(t_x;t_y;0|t_f) = \frac{1}{2^{n-1}} \frac{1}{2^{w_t}} \sum_{d_2 \cdots d_n \in \{1,-1\}} \sum_{k=0}^{w_t} C_{w_t}^k C_{\mu_1 \cdots \mu_n}^{3, d_2 \cdots d_n}(t_x;t_y-w_+(\{d_n\}) + k;0|t_f),
+\end{equation}
+where $w_t$ is the number of covariant derivatives with temporal indices, and $w_+(\{d_n\})$ denotes the number of forward temporal derivatives 
+($d_n = +1$ for those indices with $\mu_n = t$), namely $w_+ = \sum_{\mu_n = 4} \frac{1 + d_n}{2}$.
+
+The factor $\frac{1}{2^{n-1}} \sum_{d_2 \cdots d_n}$ implements the average 
+over forward- and backward-acting covariant derivatives.
+
+The second factor, $\frac{1}{2^{w_t}} \sum_{k=0}^{w_t} C_{w_t}^k$, 
+accounts for the temporal derivatives ($\mu_n = t$). 
+Each temporal derivative is decomposed into the average of 
+right-acting and left-acting parts, which correspond to correlators 
+with shifted insertion times. The right-acting parts are without the time shifts. The maximally left-shifted correlator corresponds to the case where out of $2^{w_t}$ combinations the all temporal derivatives of $d_n = 1$ are left-acting (shift to $t_{\text{ins}}-1$) and those of $d_n = -1$ are right-acting (no shift $t_{\text{ins}}$), while the maximally right-shifted one corresponds to when all $d_n = -1$ terms are left-acting and $d_n = 1$ terms are right-acting.
+
+Although there are $2^{w_t}$ possible combinations, they collapse 
+into $w_t + 1$ distinct correlators, weighted by the binomial 
+coefficients $C_{w_t}^{k}$.
+
+For example, when $w_t = 5$ and the temporal directions are 
+$\{d\} = \{1,1,1,-1,-1\}$, we have $w_+ = 3$, and the shifted insertion 
+times range from $t_y - 3$ to $t_y + 2$.
+
+Discussion with Bolun: Add the derivatives in the space directions while contracting will save much time.
+
+
+
+\section{Analysis}
+The two ratios of three-point functions as functions of the flow time is
+\begin{equation}
+\begin{aligned}
+\frac{\langle x^2 \rangle}{\langle x \rangle} &= -\frac{c_2(t,\mu)C^3_{n=3}(t)}{m_\pi c_3(t,\mu)C^3_{n=2}(t)}, \\
+\frac{\langle x^3 \rangle}{\langle x \rangle} &= \frac{c_2(t,\mu)C^3_{n=4}(t)}{m_\pi^2 c_4(t,\mu)C^3_{n=2}(t)},
+\end{aligned}
+\end{equation}
+after taking the continuum limit, up to a residual flow-time dependence from higher-dimensional operators.
+
+
+
+% \bibliography{main.bib}
+\end{document}
