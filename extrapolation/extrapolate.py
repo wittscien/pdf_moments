@@ -206,5 +206,11 @@ def flow_extrapolation(params, metadata, data, continuum, ensembles, fit_range, 
             tp.show_in_spyder()
             plt.close(fig)
 
-            print('%s moment=%d: %s' % (k,moment,repr(gv.gvar(limit_mean,limit_err))))
+    print('\nFlow-time extrapolation')
+    for k in result:
+        print('  %s' % k)
+        for moment in sorted(result[k]):
+            limit_mean = tp.cal_mean(result[k][moment])
+            limit_err = tp.cal_err(result[k][moment],tech)
+            print('    <x^%d>/<x>  %12s' % (moment - 1,repr(gv.gvar(limit_mean,limit_err))))
     return result
